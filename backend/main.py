@@ -10,6 +10,7 @@ from .financial_engine import FinancialEngine
 from .rag_engine import RAGEngine
 from .interpreter import BusinessInterpreter
 from .context_engine import ContextEngine
+from .utils import normalize_state
 
 # Initialize Logging
 setup_logging()
@@ -75,6 +76,12 @@ async def analyze_viability(profile: UserProfile) -> Dict[str, Any]:
     4. RAG: Match government schemes for funding gap.
     """
     try:
+        # Normalize location data
+        if "location" in profile.dict():
+            loc = profile.location
+            if loc and "state" in loc:
+                loc["state"] = normalize_state(loc["state"])
+
         # 1. AI Interpretation: Turn a text idea into financial numbers
         params = interpreter.interpret(profile.businessIdea, profile.availableCapital)
 

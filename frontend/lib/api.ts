@@ -9,7 +9,7 @@ export async function analyzeViability(profile: UserProfile): Promise<AnalysisRe
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Network response was not ok');
+    throw new Error(errorData.detail || errorData.message || `Server error: ${response.status} ${response.statusText}`);
   }
   return response.json();
 }
@@ -18,7 +18,7 @@ export async function getDemoScenario(scenarioId: string): Promise<AnalysisResul
   const response = await fetch(`${API_BASE_URL}/api/demo/${scenarioId}`);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Network response was not ok');
+    throw new Error(errorData.detail || errorData.message || `Server error: ${response.status} ${response.statusText}`);
   }
   return response.json();
 }
