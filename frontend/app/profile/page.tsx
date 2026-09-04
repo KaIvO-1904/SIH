@@ -93,7 +93,7 @@ export default function ProfilePage() {
     } else if (step.key === 'state') {
       updatedData.location = { ...updatedData.location!, state: inputValue };
     } else {
-      updatedData[step.key as keyof UserProfile] = step.type === 'number' ? parseFloat(inputValue) || 0 : inputValue;
+      (updatedData as any)[step.key] = step.type === 'number' ? parseFloat(inputValue) || 0 : inputValue;
     }
 
     setFormData(updatedData);

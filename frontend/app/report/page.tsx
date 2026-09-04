@@ -234,7 +234,7 @@ export default function ReportPage() {
                         <p>Subsidy: <span className="text-black font-bold">{scheme.benefit.subsidyPercent}%</span></p>
                         <p>Max Loan: <span className="text-black font-bold">₹{scheme.benefit.loanAmount}</span></p>
                       </div>
-                      <Button variant="link" asChild className="p-0 h-auto text-xs font-bold uppercase tracking-widest border-b-2 border-black pb-1 inline-block group-hover:text-zinc-500 transition-colors">
+                      <Button variant="ghost" asChild className="p-0 h-auto text-xs font-bold uppercase tracking-widest border-b-2 border-black pb-1 inline-block group-hover:text-zinc-500 transition-colors">
                         <a href={scheme.sourceUrl} target="_blank" rel="noopener noreferrer">
                           View Guidelines →
                         </a>

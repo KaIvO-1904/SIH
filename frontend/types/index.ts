@@ -16,6 +16,8 @@ export interface UserProfile {
 export interface Financials {
   total_project_cost: number;
   financing_required: number;
+  monthly_revenue: number;
+  monthly_expenses: number;
   monthly_emi: number;
   monthly_net_profit: number;
   annual_net_profit: number;
