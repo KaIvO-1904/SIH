@@ -127,13 +127,13 @@ export default function ProfilePage() {
   const progress = ((currentStep + 1) / STEPS.length) * 100;
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-black p-6 md:p-12 font-sans flex flex-col items-center justify-center">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-black dark:text-zinc-100 p-6 md:p-12 font-sans flex flex-col items-center justify-center">
       <div className="w-full max-w-xl">
         <div className="mb-8 space-y-2">
           <h1 className="text-3xl font-black uppercase tracking-tighter text-center">
             {t(lang, 'onboarding.title')}
           </h1>
-          <p className="text-zinc-500 text-center">
+          <p className="text-zinc-500 dark:text-zinc-400 text-center">
             {t(lang, 'onboarding.subtitle')}
           </p>
         </div>
@@ -148,17 +148,17 @@ export default function ProfilePage() {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
-            <Card className="border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <Card className="border-2 border-black dark:border-zinc-100 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]">
               <CardHeader>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+                  <span className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
                     Step {currentStep + 1} of {STEPS.length}
                   </span>
                 </div>
                 <CardTitle className="text-2xl font-black uppercase tracking-tight">
                   {STEPS[currentStep].title}
                 </CardTitle>
-                <CardDescription className="text-zinc-500">
+                <CardDescription className="text-zinc-500 dark:text-zinc-400">
                   {STEPS[currentStep].description}
                 </CardDescription>
               </CardHeader>
@@ -188,7 +188,7 @@ export default function ProfilePage() {
                     </Button>
                   )}
                   <Button
-                    className="px-8 font-bold uppercase tracking-tight bg-black text-white hover:bg-zinc-800"
+                    className="px-8 font-bold uppercase tracking-tight bg-black text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200"
                     onClick={handleNext}
                     disabled={isLoading || (!inputValue.trim() && STEPS[currentStep].id !== 'targetInvestment')}
                   >

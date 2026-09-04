@@ -69,7 +69,7 @@ export default function ReportPage() {
     };
   });
 
-  if (!data) return <div className="min-h-screen bg-white flex items-center justify-center font-sans">Loading Analysis...</div>;
+  if (!data) return <div className="min-h-screen bg-white dark:bg-zinc-950 text-black dark:text-zinc-100 flex items-center justify-center font-sans">Loading Analysis...</div>;
 
   const getRecommendationColor = (rec: string) => {
     if (rec === 'Proceed') return 'bg-green-100 text-green-700 border-green-200';
@@ -78,7 +78,7 @@ export default function ReportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-black p-6 md:p-12 font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-black dark:text-zinc-100 p-6 md:p-12 font-sans selection:bg-black selection:text-white dark:selection:bg-zinc-100 dark:selection:text-black">
       <div className="max-w-6xl mx-auto">
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
@@ -100,9 +100,9 @@ export default function ReportPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="p-8 border-4 border-black rounded-3xl text-center bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+              className="p-8 border-4 border-black dark:border-zinc-100 rounded-3xl text-center bg-white dark:bg-zinc-900 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]"
             >
-              <div className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-4">
+              <div className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-4">
                 {t(lang, 'report.viability_score')}
               </div>
               <div className="text-9xl font-black mb-6">{data.viabilityScore}</div>
@@ -111,17 +111,17 @@ export default function ReportPage() {
               </Badge>
             </motion.div>
 
-            <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <Card className="border-2 border-black dark:border-zinc-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]">
               <CardHeader>
                 <CardTitle className="text-lg font-black uppercase tracking-tight">
                   {t(lang, 'report.ai_insights')}
                 </CardTitle>
-                <CardDescription className="font-medium">
+                <CardDescription className="font-medium text-zinc-500 dark:text-zinc-400">
                   {t(lang, 'report.context_reasoning')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-zinc-700 leading-relaxed italic text-lg">
+                <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed italic text-lg">
                   "{data.interpreter_reasoning || "Analysis based on regional benchmarks."}"
                 </p>
               </CardContent>
@@ -222,7 +222,7 @@ export default function ReportPage() {
               <h3 className="text-2xl font-black uppercase tracking-tight">{t(lang, 'report.roadmap_title')}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {data.matchedSchemes?.map((scheme: any, i: number) => (
-                  <Card key={i} className="group hover:border-black transition-all border-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <Card key={i} className="group hover:border-black dark:hover:border-zinc-100 transition-all border-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]">
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start gap-2">
                         <CardTitle className="font-bold text-lg leading-tight">{scheme.name}</CardTitle>
@@ -230,11 +230,11 @@ export default function ReportPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="text-sm text-zinc-500 space-y-1 font-medium">
-                        <p>Subsidy: <span className="text-black font-bold">{scheme.benefit.subsidyPercent}%</span></p>
-                        <p>Max Loan: <span className="text-black font-bold">₹{scheme.benefit.loanAmount}</span></p>
+                      <div className="text-sm text-zinc-500 dark:text-zinc-400 space-y-1 font-medium">
+                        <p>Subsidy: <span className="text-black dark:text-zinc-100 font-bold">{scheme.benefit.subsidyPercent}%</span></p>
+                        <p>Max Loan: <span className="text-black dark:text-zinc-100 font-bold">₹{scheme.benefit.loanAmount}</span></p>
                       </div>
-                      <Button variant="ghost" asChild className="p-0 h-auto text-xs font-bold uppercase tracking-widest border-b-2 border-black pb-1 inline-block group-hover:text-zinc-500 transition-colors">
+                      <Button variant="ghost" asChild className="p-0 h-auto text-xs font-bold uppercase tracking-widest border-b-2 border-black dark:border-zinc-100 pb-1 inline-block group-hover:text-zinc-500 dark:group-hover:text-zinc-400 transition-colors">
                         <a href={scheme.sourceUrl} target="_blank" rel="noopener noreferrer">
                           View Guidelines →
                         </a>
