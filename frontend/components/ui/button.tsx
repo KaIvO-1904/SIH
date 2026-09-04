@@ -12,10 +12,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : 'button';
     const variants = {
-      primary: "bg-black text-white hover:bg-zinc-800",
-      secondary: "bg-zinc-100 text-black hover:bg-zinc-200",
-      outline: "border-2 border-black text-black hover:bg-zinc-50",
-      ghost: "text-black hover:bg-zinc-100",
+      primary: "bg-zinc-100 text-black hover:bg-white",
+      secondary: "bg-zinc-800 text-zinc-100 hover:bg-zinc-700",
+      outline: "border-2 border-zinc-800 text-zinc-100 hover:bg-zinc-900",
+      ghost: "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900",
       danger: "bg-red-600 text-white hover:bg-red-700",
     }
 

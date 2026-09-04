@@ -27,7 +27,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-zinc-100 selection:text-black">
       {/* Background Grain/Noise Effect for texture */}
       <div className="fixed inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
 
@@ -41,7 +41,7 @@ export default function LandingPage() {
           className="text-center mb-16"
         >
           <motion.h1
-            className="text-7xl md:text-9xl font-black tracking-tighter text-black mb-6 uppercase"
+            className="text-7xl md:text-9xl font-black tracking-tighter text-zinc-100 mb-6 uppercase"
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ duration: 1, ease: "easeOut" }}
@@ -56,7 +56,7 @@ export default function LandingPage() {
           >
             Hyper-Local Business Intelligence for Rural Micro-Entrepreneurs.
             <br />
-            <span className="text-black font-bold italic">Business Viability Before Financing.</span>
+            <span className="text-zinc-100 font-bold italic">Business Viability Before Financing.</span>
           </motion.p>
         </motion.div>
 
@@ -69,11 +69,11 @@ export default function LandingPage() {
         >
           <button
             onClick={startNormalFlow}
-            className="group relative px-8 py-4 bg-black text-white rounded-full font-bold text-lg overflow-hidden transition-all active:scale-95"
+            className="group relative px-8 py-4 bg-zinc-100 text-black rounded-full font-bold text-lg overflow-hidden transition-all active:scale-95"
           >
             <span className="relative z-10">Start Analysis</span>
             <motion.div
-              className="absolute inset-0 bg-zinc-700 transition-colors duration-300"
+              className="absolute inset-0 bg-zinc-200 transition-colors duration-300"
               whileHover={{ backgroundColor: "#444" }}
             />
           </button>
@@ -83,7 +83,7 @@ export default function LandingPage() {
             disabled={isLoading}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className="px-8 py-4 bg-white text-black border-2 border-black rounded-full font-bold text-lg transition-all active:scale-95 disabled:opacity-50 hover:bg-black hover:text-white"
+            className="px-8 py-4 bg-transparent text-zinc-100 border-2 border-zinc-800 rounded-full font-bold text-lg transition-all active:scale-95 disabled:opacity-50 hover:bg-zinc-100 hover:text-black"
           >
             {isLoading ? 'Analyzing...' : 'Explore Demo'}
           </button>
@@ -104,7 +104,7 @@ export default function LandingPage() {
             <motion.div
               key={i}
               whileHover={{ y: -10 }}
-              className="group p-8 border-t border-black transition-all duration-300 hover:bg-zinc-50"
+              className="group p-8 border-t border-zinc-800 transition-all duration-300 hover:bg-zinc-900/50"
             >
               <div className="text-sm font-mono text-zinc-400 mb-4">{feat.icon}</div>
               <h3 className="text-xl font-bold mb-3 uppercase tracking-tight">{feat.title}</h3>

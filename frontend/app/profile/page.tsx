@@ -127,38 +127,45 @@ export default function ProfilePage() {
   const progress = ((currentStep + 1) / STEPS.length) * 100;
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-black dark:text-zinc-100 p-6 md:p-12 font-sans flex flex-col items-center justify-center">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6 md:p-12 font-sans flex flex-col items-center justify-center selection:bg-zinc-100 selection:text-black">
       <div className="w-full max-w-xl">
-        <div className="mb-8 space-y-2">
-          <h1 className="text-3xl font-black uppercase tracking-tighter text-center">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 space-y-2 text-center"
+        >
+          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">
             {t(lang, 'onboarding.title')}
           </h1>
-          <p className="text-zinc-500 dark:text-zinc-400 text-center">
+          <p className="text-zinc-400 font-medium">
             {t(lang, 'onboarding.subtitle')}
           </p>
-        </div>
+        </motion.div>
 
-        <Progress value={progress} className="mb-8 h-2 bg-zinc-200" />
+        <Progress
+          value={progress}
+          className="mb-8 h-2 bg-zinc-900 border border-zinc-800 rounded-full overflow-hidden"
+        />
 
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
           >
-            <Card className="border-2 border-black dark:border-zinc-100 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]">
+            <Card className="border-2 border-zinc-800 bg-zinc-900/50 backdrop-blur-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:border-zinc-700 transition-colors">
               <CardHeader>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+                  <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
                     Step {currentStep + 1} of {STEPS.length}
                   </span>
                 </div>
                 <CardTitle className="text-2xl font-black uppercase tracking-tight">
                   {STEPS[currentStep].title}
                 </CardTitle>
-                <CardDescription className="text-zinc-500 dark:text-zinc-400">
+                <CardDescription className="text-zinc-400">
                   {STEPS[currentStep].description}
                 </CardDescription>
               </CardHeader>
@@ -172,7 +179,7 @@ export default function ProfilePage() {
                     placeholder={STEPS[currentStep].placeholder}
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    className="text-lg py-6 border-2 focus:border-black"
+                    className="text-lg py-6 bg-zinc-950 border-zinc-800 text-zinc-100 focus:border-zinc-400 transition-all"
                     disabled={isLoading}
                     onKeyDown={(e) => e.key === 'Enter' && handleNext()}
                   />
@@ -188,7 +195,7 @@ export default function ProfilePage() {
                     </Button>
                   )}
                   <Button
-                    className="px-8 font-bold uppercase tracking-tight bg-black text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200"
+                    className="px-8 font-bold uppercase tracking-tight bg-zinc-100 text-black hover:bg-white transition-all active:scale-95"
                     onClick={handleNext}
                     disabled={isLoading || (!inputValue.trim() && STEPS[currentStep].id !== 'targetInvestment')}
                   >

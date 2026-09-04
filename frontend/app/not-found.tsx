@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-white text-black font-sans flex items-center justify-center p-6">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans flex items-center justify-center p-6">
       <div className="text-center max-w-xl">
         <motion.h1
           initial={{ opacity: 0, scale: 0.8 }}
