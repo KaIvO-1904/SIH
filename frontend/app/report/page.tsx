@@ -111,9 +111,15 @@ export default function ReportPage() {
               </Badge>
             </motion.div>
 
-            <Card className="border-2 border-zinc-800 bg-zinc-900/50 backdrop-blur-sm shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:border-zinc-700 transition-colors">
+            <Card className="border-2 border-zinc-800 bg-zinc-900/50 backdrop-blur-sm shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:border-zinc-700 transition-colors relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-10">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-100">
+                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                </svg>
+              </div>
               <CardHeader>
-                <CardTitle className="text-lg font-black uppercase tracking-tight">
+                <CardTitle className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
+                  <span className="w-2 h-2 bg-zinc-100 rounded-full animate-pulse" />
                   {t(lang, 'report.ai_insights')}
                 </CardTitle>
                 <CardDescription className="font-medium text-zinc-400">
@@ -121,9 +127,13 @@ export default function ReportPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-zinc-300 leading-relaxed italic text-lg">
-                  "{data.interpreter_reasoning || "Analysis based on regional benchmarks."}"
-                </p>
+                <div className="relative">
+                  <span className="absolute -top-2 -left-2 text-4xl text-zinc-700 font-serif leading-none">“</span>
+                  <p className="text-zinc-300 leading-relaxed italic text-lg relative z-10 pl-4">
+                    {data.interpreter_reasoning || "Analysis based on regional benchmarks."}
+                  </p>
+                  <span className="absolute -bottom-6 right-0 text-4xl text-zinc-700 font-serif leading-none">”</span>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -218,23 +228,39 @@ export default function ReportPage() {
               </div>
             </motion.div>
 
-            <div className="space-y-6">
-              <h3 className="text-2xl font-black uppercase tracking-tight">{t(lang, 'report.roadmap_title')}</h3>
+            <div className="space-y-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-zinc-100 rounded-lg">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-black uppercase tracking-tight">{t(lang, 'report.roadmap_title')}</h3>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {data.matchedSchemes?.map((scheme: any, i: number) => (
-                  <Card key={i} className="group hover:border-zinc-600 transition-all border-2 border-zinc-800 bg-zinc-900/40 backdrop-blur-sm shadow-[0_10px_20px_rgba(0,0,0,0.3)]">
+                  <Card key={i} className="group hover:border-zinc-600 transition-all border-2 border-zinc-800 bg-zinc-900/40 backdrop-blur-sm shadow-[0_10px_20px_rgba(0,0,0,0.3)] overflow-hidden">
+                    <div className="h-1 w-full bg-zinc-800 group-hover:bg-zinc-100 transition-colors" />
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start gap-2">
                         <CardTitle className="font-bold text-lg leading-tight">{scheme.name}</CardTitle>
-                        <Badge variant="secondary" className="text-[10px] font-bold uppercase">{scheme.ministry}</Badge>
+                        <Badge variant="secondary" className="text-[10px] font-bold uppercase bg-zinc-800 text-zinc-400 border-zinc-700">
+                          {scheme.ministry}
+                        </Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="text-sm text-zinc-500 space-y-1 font-medium">
-                        <p>Subsidy: <span className="text-zinc-100 font-bold">{scheme.benefit.subsidyPercent}%</span></p>
-                        <p>Max Loan: <span className="text-zinc-100 font-bold">₹{scheme.benefit.loanAmount}</span></p>
+                      <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-950/50 rounded-xl border border-zinc-800">
+                        <div className="space-y-1">
+                          <div className="text-[10px] font-bold uppercase text-zinc-500">Subsidy</div>
+                          <div className="text-zinc-100 font-black text-lg">{scheme.benefit.subsidyPercent}%</div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-[10px] font-bold uppercase text-zinc-500">Max Loan</div>
+                          <div className="text-zinc-100 font-black text-lg">₹{scheme.benefit.loanAmount}</div>
+                        </div>
                       </div>
-                      <Button variant="ghost" asChild className="p-0 h-auto text-xs font-bold uppercase tracking-widest border-b-2 border-zinc-800 pb-1 inline-block group-hover:text-zinc-400 transition-colors">
+                      <Button variant="ghost" asChild className="w-full justify-center p-0 h-auto text-xs font-bold uppercase tracking-widest border-b-2 border-zinc-800 pb-2 inline-block group-hover:text-zinc-100 group-hover:border-zinc-100 transition-colors">
                         <a href={scheme.sourceUrl} target="_blank" rel="noopener noreferrer">
                           View Guidelines →
                         </a>
