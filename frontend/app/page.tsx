@@ -41,7 +41,7 @@ export default function LandingPage() {
           className="text-center mb-16"
         >
           <motion.h1
-            className="text-7xl md:text-9xl font-black tracking-tighter text-zinc-100 mb-6 uppercase"
+            className="text-6xl md:text-8xl font-black tracking-tighter text-zinc-100 mb-6 uppercase"
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ duration: 1, ease: "easeOut" }}

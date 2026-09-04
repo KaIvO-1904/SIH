@@ -49,8 +49,17 @@ class RAGEngine:
         eligible = []
         for scheme in self.schemes:
             elig = scheme["eligibility"]
-            # Check capital range
-            if elig["minCapital"] <= capital_required <= elig["maxCapital"]:
+
+            # Check capital range - More permissive for MVP
+            # If user needs no capital, they can still qualify for subsidy-based schemes
+            capital_match = False
+            if capital_required <= 0:
+                if capital_required <= elig["maxCapital"]:
+                    capital_match = True
+            elif elig["minCapital"] <= capital_required <= elig["maxCapital"]:
+                capital_match = True
+
+            if capital_match:
                 # Check category match (broad match)
                 if any(cat.lower() in category.lower() for cat in elig["categories"]):
                     eligible.append(scheme)

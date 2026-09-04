@@ -105,7 +105,7 @@ export default function ReportPage() {
               <div className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">
                 {t(lang, 'report.viability_score')}
               </div>
-              <div className="text-9xl font-black mb-6">{data.viabilityScore}</div>
+              <div className="text-8xl font-black mb-6">{data.viabilityScore}</div>
               <Badge variant="outline" className={`text-xl px-6 py-2 rounded-full font-bold uppercase border-2 ${getRecommendationColor(data.recommendation)}`}>
                 {data.recommendation}
               </Badge>
@@ -146,8 +146,8 @@ export default function ReportPage() {
             >
               <div className="flex justify-between items-center mb-8">
                 <div>
-                  <h2 className="text-2xl font-black uppercase tracking-tight">{t(lang, 'report.sandbox_title')}</h2>
-                  <p className="text-zinc-400 text-sm">{t(lang, 'report.sandbox_subtitle')}</p>
+                  <h2 className="text-xl font-black uppercase tracking-tight">{t(lang, 'report.sandbox_title')}</h2>
+                  <p className="text-zinc-400 text-xs">{t(lang, 'report.sandbox_subtitle')}</p>
                 </div>
                 <div className="text-right">
                   <div className="text-xs font-bold uppercase text-zinc-500">Real-time ROI</div>
@@ -235,7 +235,7 @@ export default function ReportPage() {
                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                   </svg>
                 </div>
-                <h3 className="text-2xl font-black uppercase tracking-tight">{t(lang, 'report.roadmap_title')}</h3>
+                <h3 className="text-xl font-black uppercase tracking-tight">{t(lang, 'report.roadmap_title')}</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {data.matchedSchemes?.map((scheme: any, i: number) => (

@@ -98,8 +98,23 @@ async def analyze_viability(profile: UserProfile) -> Dict[str, Any]:
         # 4. RAG Matching: Find the right schemes for the funding gap
         schemes = rag_engine.get_best_schemes(profile.dict(), params)
 
+        # Calculate a realistic viability score
+        # Base score on viability, ROI, and break-even
+        base_score = 50
+        if financials["is_viable"]:
+            base_score += 30
+
+        # Bonus for high ROI (up to 20 points)
+        roi_bonus = min(20, max(0, (financials["roi_percent"] / 5)))
+
+        # Bonus for fast break-even (up to 10 points)
+        be_bonus = max(0, 10 - (financials["break_even_months"] / 6))
+
+        viability_score = int(base_score + roi_bonus + be_bonus)
+        viability_score = min(100, max(0, viability_score))
+
         return {
-            "viabilityScore": 75, # In a real scenario, this would be calculated from financial metrics
+            "viabilityScore": viability_score,
             "recommendation": "Proceed with Modification" if financials["is_viable"] else "Reconsider",
             "marketAnalysis": market_analysis,
             "financials": financials,
