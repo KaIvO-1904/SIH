@@ -1,14 +1,23 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional
-import json
-import os
-from financial_engine import FinancialEngine
-from rag_engine import RAGEngine
-from interpreter import BusinessInterpreter
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any
+import logging
+from .config import settings
+from .logger import setup_logging, logger
+from .financial_engine import FinancialEngine
+from .rag_engine import RAGEngine
+from .interpreter import BusinessInterpreter
+from .context_engine import ContextEngine
 
-app = FastAPI(title="Gram-AI Backend")
+# Initialize Logging
+setup_logging()
+
+app = FastAPI(
+    title=settings.app_title,
+    description="AI-Driven Hyper-Local Business Advisory for Rural Micro-Entrepreneurs"
+)
 
 # Enable CORS for the frontend to communicate with the backend
 app.add_middleware(
@@ -19,57 +28,90 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize Engines
 fin_engine = FinancialEngine()
 rag_engine = RAGEngine()
 interpreter = BusinessInterpreter()
+ctx_engine = ContextEngine()
 
 class UserProfile(BaseModel):
-    location: dict
-    businessIdea: str
-    availableCapital: float
-    experience: int
-    targetInvestment: float
+    location: Dict[str, Any] = Field(..., description="User location data (district, state)")
+    businessIdea: str = Field(..., min_length=3, description="The business idea to analyze")
+    availableCapital: float = Field(..., gt=0, description="Capital currently available to the user")
+    experience: int = Field(..., ge=0, description="Years of experience in the field")
+    targetInvestment: float = Field(0.0, ge=0, description="Optional target total investment")
 
-@app.get("/")
-async def root():
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Global exception handler to ensure all errors return a structured JSON response.
+    """
+    logger.error(f"Unhandled exception occurred: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal Server Error",
+            "message": str(exc),
+            "code": "INTERNAL_SERVER_ERROR"
+        }
+    )
+
+@app.get("/", response_model=Dict[str, str])
+async def root() -> Dict[str, str]:
+    """
+    Health check endpoint.
+    """
     return {"message": "Welcome to Gram-AI API", "status": "online"}
 
 @app.post("/api/analyze-viability")
-async def analyze_viability(profile: UserProfile):
-    # 1. AI Interpretation: Turn a text idea into financial numbers
-    params = interpreter.interpret(profile.businessIdea, profile.availableCapital)
+async def analyze_viability(profile: UserProfile) -> Dict[str, Any]:
+    """
+    Main endpoint for analyzing the viability of a business idea.
 
-    # 2. Deterministic Calculation: Run the math
-    # We override the setup_cost with user's target if they provided one
-    params["setup_cost"] = profile.targetInvestment if profile.targetInvestment > 0 else params["setup_cost"]
-    params["user_capital"] = profile.availableCapital
+    Flow:
+    1. Interpretation: Text idea -> Financial parameters.
+    2. Calculation: Run deterministic financial model.
+    3. Context: Get hyper-local market proxies.
+    4. RAG: Match government schemes for funding gap.
+    """
+    try:
+        # 1. AI Interpretation: Turn a text idea into financial numbers
+        params = interpreter.interpret(profile.businessIdea, profile.availableCapital)
 
-    financials = fin_engine.compute_full_model(params)
+        # 2. Deterministic Calculation: Run the math
+        # Override setup_cost with user's target if they provided one
+        params["setup_cost"] = profile.targetInvestment if profile.targetInvestment > 0 else params["setup_cost"]
+        params["user_capital"] = profile.availableCapital
 
-    # 3. RAG Matching: Find the right schemes for the funding gap
-    schemes = rag_engine.get_best_schemes(profile.dict(), params)
+        financials = fin_engine.compute_full_model(params)
 
-    return {
-        "viabilityScore": 75,
-        "recommendation": "Proceed with Modification" if financials["is_viable"] else "Reconsider",
-        "marketAnalysis": {
-            "demand": 80,
-            "competition": 60,
-            "accessibility": 70
-        },
-        "financials": financials,
-        "interpreter_reasoning": params.get("reasoning"),
-        "modifications": ["Reduce initial scale based on projected cash flow"],
-        "matchedSchemes": schemes
-    }
+        # 3. Local Context: Get market proxies for the location and business idea
+        market_analysis = ctx_engine.get_market_proxies(profile.dict(), profile.businessIdea)
+
+        # 4. RAG Matching: Find the right schemes for the funding gap
+        schemes = rag_engine.get_best_schemes(profile.dict(), params)
+
+        return {
+            "viabilityScore": 75, # In a real scenario, this would be calculated from financial metrics
+            "recommendation": "Proceed with Modification" if financials["is_viable"] else "Reconsider",
+            "marketAnalysis": market_analysis,
+            "financials": financials,
+            "interpreter_reasoning": params.get("reasoning"),
+            "modifications": ["Reduce initial scale based on projected cash flow"],
+            "matchedSchemes": schemes
+        }
+    except Exception as e:
+        logger.exception(f"Analysis failed for idea '{profile.businessIdea}': {e}")
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @app.get("/api/demo/{scenario_id}")
-async def get_demo_scenario(scenario_id: str):
+async def get_demo_scenario(scenario_id: str) -> Dict[str, Any]:
+    """
+    Retrieves a pre-defined demo scenario for showcase purposes.
+    """
     try:
-        # Use absolute path to find data regardless of where the server is started
         import os
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        scenario_path = os.path.join(base_dir, "data", "demo_scenarios.json")
+        scenario_path = os.path.join(settings.data_dir, "demo_scenarios.json")
 
         with open(scenario_path, "r") as f:
             scenarios = json.load(f)
@@ -95,9 +137,13 @@ async def get_demo_scenario(scenario_id: str):
             "modifications": scenario["ai_insights"]["modifications"],
             "matchedSchemes": schemes
         }
+    except FileNotFoundError:
+        logger.error("demo_scenarios.json not found")
+        raise HTTPException(status_code=500, detail="Demo data not found")
     except Exception as e:
+        logger.exception(f"Error retrieving demo scenario {scenario_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=settings.app_host, port=settings.app_port)

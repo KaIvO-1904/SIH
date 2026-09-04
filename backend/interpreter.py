@@ -2,6 +2,8 @@ import json
 from typing import Dict, Any
 from openai import OpenAI
 import os
+from .config import settings
+from .logger import logger
 
 class BusinessInterpreter:
     """
@@ -10,16 +12,28 @@ class BusinessInterpreter:
     """
 
     def __init__(self):
-        self.client = OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
-            base_url=os.getenv("OPENAI_BASE_URL")
-        )
-        self.model = os.getenv("LLM_MODEL", "gpt-4o-mini")
+        # Configuration from settings
+        api_key = settings.openai_api_key
+        base_url = settings.openai_base_url
+
+        if not api_key:
+            logger.warning("OPENAI_API_KEY not found. AI interpretation will be disabled.")
+            self.client = None
+        else:
+            self.client = OpenAI(
+                api_key=api_key,
+                base_url=base_url
+            )
+        self.model = settings.llm_model
 
     def interpret(self, idea: str, available_capital: float) -> Dict[str, Any]:
         """
         Extracts financial estimates for any business idea.
         """
+        if not self.client:
+            logger.error("AI client not initialized. Using safe defaults for interpretation.")
+            return self._get_safe_defaults(available_capital)
+
         prompt = (
             f"You are a Rural Business Analyst. The user wants to start a business: '{idea}'. "
             f"They have {available_capital} capital. \n\n"
@@ -42,13 +56,16 @@ class BusinessInterpreter:
             )
             return json.loads(response.choices[0].message.content)
         except Exception as e:
-            print(f"Interpretation failed: {e}. Using safe defaults.")
-            return {
-                "setup_cost": available_capital * 3,
-                "monthly_revenue": available_capital * 0.1,
-                "monthly_expenses": available_capital * 0.05,
-                "interest_rate": 10.0,
-                "tenure_years": 5,
-                "category": "general",
-                "reasoning": "Using generic defaults due to AI failure."
-            }
+            logger.error(f"Interpretation failed: {e}. Using safe defaults.")
+            return self._get_safe_defaults(available_capital)
+
+    def _get_safe_defaults(self, available_capital: float) -> Dict[str, Any]:
+        return {
+            "setup_cost": available_capital * 3,
+            "monthly_revenue": available_capital * 0.1,
+            "monthly_expenses": available_capital * 0.05,
+            "interest_rate": 10.0,
+            "tenure_years": 5,
+            "category": "general",
+            "reasoning": "Using generic defaults due to AI failure."
+        }

@@ -2,6 +2,8 @@ import json
 from typing import List, Dict, Any
 from openai import OpenAI
 import os
+from .config import settings
+from .logger import logger
 
 class RAGEngine:
     """
@@ -11,13 +13,13 @@ class RAGEngine:
     """
 
     def __init__(self):
-        # Load configuration from environment variables
-        api_key = os.getenv("OPENAI_API_KEY")
-        base_url = os.getenv("OPENAI_BASE_URL") # e.g., https://openrouter.ai/api/v1
-        self.model = os.getenv("LLM_MODEL", "gpt-4o-mini")
+        # Load configuration from settings
+        api_key = settings.openai_api_key
+        base_url = settings.openai_base_url
+        self.model = settings.llm_model
 
         if not api_key:
-            print("WARNING: OPENAI_API_KEY not found. AI ranking will be disabled.")
+            logger.warning("OPENAI_API_KEY not found. AI ranking will be disabled.")
             self.client = None
         else:
             self.client = OpenAI(
@@ -26,19 +28,17 @@ class RAGEngine:
             )
 
         try:
-            # Ensure path is correct relative to project root
-            # Use absolute path if relative fails
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            scheme_path = os.path.join(base_dir, "data", "schemes.json")
+            # Use settings for data directory
+            scheme_path = os.path.join(settings.data_dir, "schemes.json")
             with open(scheme_path, "r") as f:
                 self.schemes = json.load(f)
         except FileNotFoundError:
-            print("ERROR: schemes.json not found. Checking relative paths...")
+            logger.error("schemes.json not found. Checking relative paths...")
             try:
                 with open("data/schemes.json", "r") as f:
                     self.schemes = json.load(f)
             except Exception as e:
-                print(f"CRITICAL ERROR: Could not find schemes.json: {e}")
+                logger.critical(f"Could not find schemes.json: {e}")
                 self.schemes = []
 
     def filter_eligible_schemes(self, capital_required: float, category: str) -> List[Dict]:
@@ -61,7 +61,7 @@ class RAGEngine:
         Step 2: Semantic Ranking.
         Uses LLM to rank filtered schemes based on specific business needs.
         """
-        if not eligible_schemes or not os.getenv("OPENAI_API_KEY"):
+        if not eligible_schemes or not settings.openai_api_key:
             return eligible_schemes
 
         # Construct a condensed list of schemes for the prompt
@@ -83,7 +83,6 @@ class RAGEngine:
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"}
             )
-
             res_json = json.loads(response.choices[0].message.content)
             ranked_ids = res_json.get("ranked_ids", [])
 
@@ -96,7 +95,7 @@ class RAGEngine:
 
             return ordered_schemes if ordered_schemes else eligible_schemes
         except Exception as e:
-            print(f"AI Ranking failed: {e}. Falling back to original order.")
+            logger.error(f"AI Ranking failed: {e}. Falling back to original order.")
             return eligible_schemes
 
     def get_best_schemes(self, profile: Dict[str, Any], financial_params: Dict[str, Any]) -> List[Dict]:
