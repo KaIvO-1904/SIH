@@ -1,5 +1,11 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
+from pathlib import Path
+import os
+
+# Locate project data directory dynamically
+ROOT_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_DATA_DIR = str(ROOT_DIR / "data") if (ROOT_DIR / "data").exists() else "data"
 
 class Settings(BaseSettings):
     """
@@ -16,11 +22,11 @@ class Settings(BaseSettings):
     app_port: int = 8000
     app_host: str = "0.0.0.0"
 
-    # Data paths
-    data_dir: str = "data"
+    # Data paths - auto resolved to d:/Projects/SIH/data
+    data_dir: str = DEFAULT_DATA_DIR
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(ROOT_DIR / ".env"),
         env_file_encoding="utf-8",
         extra="ignore"
     )

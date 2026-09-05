@@ -2,8 +2,12 @@ from typing import Dict, Any
 from openai import OpenAI
 import json
 import os
-from .config import settings
-from .logger import logger
+try:
+    from .config import settings
+    from .logger import logger
+except (ImportError, ValueError):
+    from config import settings
+    from logger import logger
 
 class ContextEngine:
     """

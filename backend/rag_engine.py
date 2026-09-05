@@ -2,8 +2,12 @@ import json
 from typing import List, Dict, Any
 from openai import OpenAI
 import os
-from .config import settings
-from .logger import logger
+try:
+    from .config import settings
+    from .logger import logger
+except (ImportError, ValueError):
+    from config import settings
+    from logger import logger
 
 class RAGEngine:
     """

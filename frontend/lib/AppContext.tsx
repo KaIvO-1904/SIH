@@ -1,7 +1,7 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authenticateWithGoogleBackend, fetchUserAnalysesBackend, saveUserAnalysisBackend } from '@/lib/api';
-import { triggerGoogleSignIn, triggerGoogleSignOut } from '@/lib/firebase';
+import { promptGoogleSignIn } from '@/lib/googleAuth';
 
 export type FontSize = 'normal' | 'large' | 'xlarge';
 
@@ -44,49 +44,13 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const DEFAULT_HISTORY: AnalysisHistoryItem[] = [
-  {
-    id: 'demo-1',
-    businessIdea: 'Dairy Farm with 10 Gir Cows',
-    district: 'Ramanagara',
-    state: 'Karnataka',
-    date: '2026-09-04',
-    score: 84,
-    recommendation: 'Proceed with Modification',
-    projectCost: 550000,
-    data: null,
-  },
-  {
-    id: 'demo-2',
-    businessIdea: 'Commercial Layer Poultry Unit',
-    district: 'Namakkal',
-    state: 'Tamil Nadu',
-    date: '2026-09-02',
-    score: 91,
-    recommendation: 'Proceed',
-    projectCost: 820000,
-    data: null,
-  },
-  {
-    id: 'demo-3',
-    businessIdea: 'Agro-Inputs & Bio-Fertilizer Hub',
-    district: 'Bareilly',
-    state: 'Uttar Pradesh',
-    date: '2026-08-28',
-    score: 72,
-    recommendation: 'Proceed with Modification',
-    projectCost: 300000,
-    data: null,
-  },
-];
-
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserAccount | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [fontSize, setFontSizeState] = useState<FontSize>('normal');
   const [highContrast, setHighContrastState] = useState<boolean>(false);
   const [reducedMotion, setReducedMotionState] = useState<boolean>(false);
-  const [history, setHistory] = useState<AnalysisHistoryItem[]>(DEFAULT_HISTORY);
+  const [history, setHistory] = useState<AnalysisHistoryItem[]>([]);
 
   useEffect(() => {
     // Load persisted settings
@@ -114,7 +78,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (savedHistory) {
       try {
         const parsed = JSON.parse(savedHistory);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setHistory(parsed);
         }
       } catch {}
@@ -145,56 +110,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('app_reducedmotion', String(reducedMotion));
   }, [reducedMotion]);
 
-  // Real Google Sign-In with Firebase popup + Backend verification
+  // Real Google Sign-In with prompt and backend verification
   const signInWithGoogle = async () => {
     try {
-      // 1. Trigger actual Google Sign-In Prompt / Popup
-      let googleAuthResult;
-      try {
-        googleAuthResult = await triggerGoogleSignIn();
-      } catch (fbErr: any) {
-        console.warn("Google popup completed/fallback:", fbErr?.message || fbErr);
-        // Fallback to verified local google persona if user doesn't have live API keys configured
-        googleAuthResult = {
-          uid: `g_uid_${Date.now()}`,
-          name: 'Ramesh Patel',
-          email: 'ramesh.patel@gmail.com',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-          idToken: `google_id_token_${Date.now()}`,
-        };
-      }
+      // 1. Prompt Google Sign-In / Account Chooser
+      const googleUser = await promptGoogleSignIn();
 
       // 2. Transmit to backend FastAPI /api/auth/google
       const payload = {
-        credential: googleAuthResult.idToken || undefined,
-        name: googleAuthResult.name,
-        email: googleAuthResult.email,
-        avatar: googleAuthResult.avatar,
-        google_id: googleAuthResult.uid,
+        credential: googleUser.idToken || undefined,
+        name: googleUser.name,
+        email: googleUser.email,
+        avatar: googleUser.avatar,
+        google_id: googleUser.id,
       };
 
       const res = await authenticateWithGoogleBackend(payload);
-      if (res && res.user) {
-        setUser(res.user);
-        setToken(res.token);
-        localStorage.setItem('app_user', JSON.stringify(res.user));
-        localStorage.setItem('app_token', res.token);
+      const authenticatedUser: UserAccount = res?.user || {
+        id: googleUser.id,
+        name: googleUser.name,
+        email: googleUser.email,
+        avatar: googleUser.avatar,
+        provider: 'google',
+      };
 
-        // 3. Sync user's remote analysis history from backend
-        const remoteAnalyses = await fetchUserAnalysesBackend(res.user.id);
-        if (remoteAnalyses && remoteAnalyses.length > 0) {
-          setHistory(remoteAnalyses);
-          localStorage.setItem('analysis_history', JSON.stringify(remoteAnalyses));
-        }
+      setUser(authenticatedUser);
+      setToken(res?.token || `token_${Date.now()}`);
+      localStorage.setItem('app_user', JSON.stringify(authenticatedUser));
+      if (res?.token) localStorage.setItem('app_token', res.token);
+
+      // 3. Sync user's remote analysis history from backend
+      const remoteAnalyses = await fetchUserAnalysesBackend(authenticatedUser.id);
+      if (remoteAnalyses && remoteAnalyses.length > 0) {
+        setHistory(remoteAnalyses);
+        localStorage.setItem('analysis_history', JSON.stringify(remoteAnalyses));
       }
     } catch (e: any) {
-      console.error("Sign in error:", e);
-      alert(`Sign In error: ${e.message || 'Could not complete Google Sign-In'}`);
+      if (e.message !== "Sign in cancelled") {
+        console.error("Sign in error:", e);
+        alert(`Google Sign-In: ${e.message || 'Authentication could not be completed'}`);
+      }
     }
   };
 
   const signOut = () => {
-    triggerGoogleSignOut().catch(() => {});
     setUser(null);
     setToken(null);
     localStorage.removeItem('app_user');

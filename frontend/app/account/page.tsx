@@ -36,6 +36,8 @@ import {
   ExternalLink,
   ChevronRight,
   ShieldCheck,
+  LogIn,
+  Search,
 } from 'lucide-react';
 
 export default function AccountPage() {
@@ -60,6 +62,7 @@ export default function AccountPage() {
   const [activeTab, setActiveTab] = useState<'history' | 'settings' | 'data'>('history');
   const [audioAssistance, setAudioAssistance] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleGoogleSignIn = async () => {
     setIsSigningIn(true);
@@ -106,8 +109,8 @@ export default function AccountPage() {
           ],
           matchedSchemes: [
             {
-              schemeId: 'nabard-dairy',
-              name: 'NABARD Rural Entrepreneurship Development Scheme',
+              schemeId: 'nabard-rural',
+              name: 'NABARD Rural Micro-Enterprise Development Scheme',
               ministry: 'Ministry of Agriculture & Rural Development',
               benefit: { subsidyPercent: 25, loanAmount: item.projectCost * 0.75 },
               sourceUrl: 'https://www.nabard.org',
@@ -130,17 +133,23 @@ export default function AccountPage() {
     downloadAnchor.remove();
   };
 
-  // Quick stats derived from history
+  const filteredHistory = history.filter(
+    (item) =>
+      item.businessIdea.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.district.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.state.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const totalEvaluations = history.length;
   const avgViability = totalEvaluations > 0 ? Math.round(history.reduce((a, b) => a + b.score, 0) / totalEvaluations) : 0;
   const totalCapital = history.reduce((a, b) => a + (b.projectCost || 0), 0);
 
   return (
     <div
-      className="min-h-screen pt-24 pb-20 px-4 sm:px-6 md:px-10 relative overflow-hidden"
+      className="min-h-screen pt-24 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
       style={{ backgroundColor: 'var(--surface-0)', color: 'var(--text-primary)' }}
     >
-      {/* ── Background Subtle Grid & Radiant Mesh Gradients ── */}
+      {/* ── Ambient Background Mesh Gradients (Matching Landing Page) ── */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
         <div
           className="absolute inset-0 opacity-[0.22]"
@@ -152,23 +161,23 @@ export default function AccountPage() {
           }}
         />
         <div
-          className="absolute top-[-10%] left-[-10%] w-[800px] h-[700px] rounded-full blur-[130px] opacity-35"
+          className="absolute top-[-10%] right-[-5%] w-[800px] h-[750px] rounded-full blur-[130px] opacity-35"
           style={{
-            background: 'radial-gradient(circle, color-mix(in srgb, #3b82f6 25%, transparent) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, color-mix(in srgb, #3b82f6 24%, transparent) 0%, color-mix(in srgb, #06b6d4 15%, transparent) 50%, transparent 70%)',
           }}
         />
         <div
-          className="absolute top-[20%] right-[-10%] w-[750px] h-[750px] rounded-full blur-[140px] opacity-30"
+          className="absolute bottom-[-10%] left-[-5%] w-[750px] h-[750px] rounded-full blur-[140px] opacity-30"
           style={{
-            background: 'radial-gradient(circle, color-mix(in srgb, #818cf8 22%, transparent) 0%, transparent 65%)',
+            background: 'radial-gradient(circle, color-mix(in srgb, #6366f1 20%, transparent) 0%, transparent 65%)',
           }}
         />
       </div>
 
-      <div className="relative z-10 max-w-5xl mx-auto space-y-8">
+      <div className="relative z-10 max-w-6xl mx-auto space-y-8">
         
         {/* ─────────────────────────────────────────
-            USER PROFILE & AUTHENTICATION HERO CARD
+            USER PROFILE & GOOGLE AUTHENTICATION HERO
         ───────────────────────────────────────── */}
         <FadeIn duration={0.6}>
           <div
@@ -181,20 +190,13 @@ export default function AccountPage() {
             {/* Top Multi-Color Aurora Strip */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400" />
 
-            {/* Background Ambient Radial Accent */}
-            <div
-              className="absolute -right-20 -bottom-20 w-80 h-80 rounded-full blur-3xl opacity-30 pointer-events-none"
-              style={{
-                background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)',
-              }}
-            />
-
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 relative z-10">
               
-              {/* User Identity Section */}
+              {/* Profile Identity */}
               {user ? (
+                /* Authenticated User Profile derived from Google */
                 <div className="flex items-center gap-5">
-                  <div className="relative w-20 h-20 rounded-3xl overflow-hidden border-2 border-blue-400/50 shadow-lg shrink-0">
+                  <div className="relative w-20 h-20 rounded-3xl overflow-hidden border-2 border-blue-400/50 shadow-lg shrink-0 bg-[var(--surface-2)]">
                     <Image
                       src={user.avatar}
                       alt={user.name}
@@ -204,7 +206,7 @@ export default function AccountPage() {
                     />
                   </div>
                   <div>
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-2.5 mb-1">
                       <h2 className="text-2xl sm:text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
                         {user.name}
                       </h2>
@@ -215,36 +217,37 @@ export default function AccountPage() {
                     <p className="text-sm font-medium text-[var(--text-secondary)]">{user.email}</p>
                     <div className="flex items-center gap-2 mt-2 text-xs font-semibold text-[var(--accent)]">
                       <Sparkles size={13} />
-                      <span>Enterprise Tier: Active Decision Hub</span>
+                      <span>Authenticated Google Account</span>
                     </div>
                   </div>
                 </div>
               ) : (
+                /* Guest State (No Hardcoded Names) */
                 <div className="flex items-center gap-5">
                   <ThreeDIcon name="building" size="xl" variant="indigo" />
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <h2 className="text-2xl sm:text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                        Guest Entrepreneur
+                        Guest Session
                       </h2>
                       <Badge variant="secondary" className="text-[10px] font-bold">
-                        Offline Session
+                        Local Storage Active
                       </Badge>
                     </div>
-                    <p className="text-sm text-[var(--text-secondary)] max-w-md">
-                      Sign in with Google to synchronize your viability models and download official scheme certificates.
+                    <p className="text-sm text-[var(--text-secondary)] max-w-lg leading-relaxed">
+                      Sign in with your Google account to automatically sync reports across devices, unlock government subsidy matching, and export certified dossiers.
                     </p>
                   </div>
                 </div>
               )}
 
-              {/* Action: Google Sign In / Sign Out */}
+              {/* Action: Google Sign-In Prompt or Sign Out */}
               <div className="shrink-0 w-full sm:w-auto">
                 {user ? (
                   <Button
                     variant="outline"
                     onClick={signOut}
-                    className="w-full sm:w-auto gap-2 rounded-2xl text-xs font-bold hover:text-red-500 hover:border-red-500/50 px-5 h-11"
+                    className="w-full sm:w-auto gap-2 rounded-2xl text-xs font-bold hover:text-red-500 hover:border-red-500/50 px-5 h-11 cursor-pointer"
                   >
                     <LogOut size={15} />
                     Sign Out Account
@@ -253,10 +256,10 @@ export default function AccountPage() {
                   <button
                     onClick={handleGoogleSignIn}
                     disabled={isSigningIn}
-                    className="w-full sm:w-auto flex items-center justify-center gap-3 px-7 py-3.5 rounded-2xl font-bold text-sm shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50"
+                    className="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-3.5 rounded-2xl font-bold text-sm shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50"
                   >
                     {/* Official Google SVG Logo */}
-                    <svg width="18" height="18" viewBox="0 0 24 24">
+                    <svg width="19" height="19" viewBox="0 0 24 24">
                       <path
                         fill="#4285F4"
                         d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"
@@ -274,7 +277,7 @@ export default function AccountPage() {
                         d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.36 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"
                       />
                     </svg>
-                    <span>{isSigningIn ? 'Connecting…' : 'Sign in with Google'}</span>
+                    <span>{isSigningIn ? 'Connecting to Google…' : 'Sign in with Google'}</span>
                   </button>
                 )}
               </div>
@@ -282,30 +285,30 @@ export default function AccountPage() {
 
             {/* Quick Metrics Bar on Profile Header */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-6 mt-6 border-t border-[var(--border)]">
-              <div className="p-3.5 rounded-2xl bg-[var(--surface-0)] border border-[var(--border)]">
+              <div className="p-4 rounded-2xl bg-[var(--surface-0)] border border-[var(--border)]">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1">
-                  <History size={12} className="text-[var(--accent)]" /> Analyses Run
+                  <History size={13} className="text-[var(--accent)]" /> Total Analyses
                 </div>
-                <div className="text-xl font-black font-mono" style={{ color: 'var(--text-primary)' }}>
+                <div className="text-2xl font-black font-mono" style={{ color: 'var(--text-primary)' }}>
                   {totalEvaluations}
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-[var(--surface-0)] border border-[var(--border)]">
+              <div className="p-4 rounded-2xl bg-[var(--surface-0)] border border-[var(--border)]">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1">
-                  <TrendingUp size={12} className="text-[var(--success)]" /> Avg Viability
+                  <TrendingUp size={13} className="text-[var(--success)]" /> Average Score
                 </div>
-                <div className="text-xl font-black font-mono text-[var(--success)]">
-                  {avgViability}/100
+                <div className="text-2xl font-black font-mono text-[var(--success)]">
+                  {avgViability > 0 ? `${avgViability}/100` : '—'}
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-[var(--surface-0)] border border-[var(--border)] col-span-2 sm:col-span-1">
+              <div className="p-4 rounded-2xl bg-[var(--surface-0)] border border-[var(--border)] col-span-2 sm:col-span-1">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1">
-                  <DollarSign size={12} className="text-[var(--accent)]" /> Total Capital Mapped
+                  <DollarSign size={13} className="text-[var(--accent)]" /> Capital Modeled
                 </div>
-                <div className="text-xl font-black font-mono" style={{ color: 'var(--text-primary)' }}>
-                  ₹{(totalCapital / 100000).toFixed(1)}L
+                <div className="text-2xl font-black font-mono" style={{ color: 'var(--text-primary)' }}>
+                  {totalCapital > 0 ? `₹${(totalCapital / 100000).toFixed(1)} Lakhs` : '₹0'}
                 </div>
               </div>
             </div>
@@ -313,13 +316,13 @@ export default function AccountPage() {
         </FadeIn>
 
         {/* ─────────────────────────────────────────
-            NAVIGATION TABS (Modern Rounded Pills)
+            NAVIGATION TABS
         ───────────────────────────────────────── */}
         <div className="flex border-b border-[var(--border)] gap-2 pb-1 overflow-x-auto">
           {[
             { id: 'history', label: 'Analysis History', icon: History, count: history.length },
             { id: 'settings', label: 'Accessibility & Display', icon: Sliders },
-            { id: 'data', label: 'Security & Export', icon: ShieldCheck },
+            { id: 'data', label: 'Data Security & Export', icon: ShieldCheck },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -336,7 +339,7 @@ export default function AccountPage() {
                 <Icon size={16} />
                 <span>{tab.label}</span>
                 {tab.count !== undefined && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--text-muted)] font-mono font-bold">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--text-muted)] font-mono font-bold">
                     {tab.count}
                   </span>
                 )}
@@ -361,38 +364,50 @@ export default function AccountPage() {
                   Saved Enterprise Evaluations
                 </h3>
                 <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                  View and reload previously generated deterministic viability models.
+                  Reload previously generated deterministic viability models.
                 </p>
               </div>
 
               {history.length > 0 && (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                  <div className="relative w-full sm:w-64">
+                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                    <input
+                      type="text"
+                      placeholder="Search evaluations…"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-[var(--surface-1)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none"
+                    />
+                  </div>
+
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleExportJSON}
-                    className="text-xs gap-1.5 rounded-xl font-bold"
+                    className="text-xs gap-1.5 rounded-xl font-bold shrink-0 cursor-pointer"
                   >
                     <Download size={14} /> Export JSON
                   </Button>
+
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={clearHistory}
-                    className="text-xs text-red-500 hover:text-red-600 gap-1.5 font-bold"
+                    className="text-xs text-red-500 hover:text-red-600 gap-1.5 font-bold shrink-0 cursor-pointer"
                   >
-                    <Trash2 size={14} /> Clear History
+                    <Trash2 size={14} /> Clear
                   </Button>
                 </div>
               )}
             </div>
 
-            {history.length > 0 ? (
+            {filteredHistory.length > 0 ? (
               <div className="grid grid-cols-1 gap-4">
-                {history.map((item) => (
+                {filteredHistory.map((item) => (
                   <div
                     key={item.id}
-                    className="p-6 rounded-3xl border bg-[var(--surface-1)] border-[var(--border)] shadow-sm hover:shadow-md hover:border-[var(--border-strong)] transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-5 group"
+                    className="p-6 rounded-3xl border bg-[var(--surface-1)] border-[var(--border)] shadow-xs hover:shadow-md hover:border-[var(--border-strong)] transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-5 group"
                   >
                     <div className="space-y-2.5">
                       <div className="flex flex-wrap items-center gap-3">
@@ -427,7 +442,7 @@ export default function AccountPage() {
                         onClick={() => handleOpenReport(item)}
                         className="gap-2 rounded-xl px-5 h-10 font-bold shadow-md cursor-pointer"
                       >
-                        <Eye size={15} /> Open Full Report
+                        <Eye size={15} /> Open Report
                       </Button>
                       <button
                         onClick={() => deleteHistoryItem(item.id)}
@@ -443,11 +458,11 @@ export default function AccountPage() {
             ) : (
               <div className="text-center py-20 border rounded-3xl bg-[var(--surface-1)] border-[var(--border)]">
                 <ThreeDIcon name="chart" size="xl" variant="blue" className="mx-auto mb-4" />
-                <h4 className="text-xl font-bold mb-2">No Analysis History Yet</h4>
+                <h4 className="text-xl font-bold mb-2">No Evaluations Saved Yet</h4>
                 <p className="text-sm text-[var(--text-secondary)] max-w-sm mx-auto mb-6">
-                  Run your first hyper-local business analysis to automatically store and track reports here.
+                  Complete a business questionnaire to automatically generate and save your viability analysis report here.
                 </p>
-                <Button variant="primary" onClick={() => router.push('/profile')} className="rounded-2xl px-7">
+                <Button variant="primary" onClick={() => router.push('/profile')} className="rounded-2xl px-7 cursor-pointer">
                   Start New Analysis
                 </Button>
               </div>
@@ -657,12 +672,12 @@ export default function AccountPage() {
               </div>
               <div className="flex items-start gap-3">
                 <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
-                <span>Local analysis history is stored on your device and never sold to third-party credit brokers.</span>
+                <span>Local analysis history is stored securely on your device and synchronized to your account only when authenticated.</span>
               </div>
             </div>
 
             <div className="pt-4 border-t border-[var(--border)] flex flex-wrap gap-4">
-              <Button variant="outline" onClick={handleExportJSON} className="gap-2 rounded-xl text-xs font-bold">
+              <Button variant="outline" onClick={handleExportJSON} className="gap-2 rounded-xl text-xs font-bold cursor-pointer">
                 <Download size={14} /> Download Entire History (.json)
               </Button>
             </div>
