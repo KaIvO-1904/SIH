@@ -15,16 +15,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GramNirnay AI | Rural Business Intelligence",
+  title: "GramNirnay.ai | Rural Business Intelligence",
   description: "AI-Driven Hyper-Local Business Advisory and Financial Structuring Assistant for Rural Micro-Entrepreneurs.",
   openGraph: {
-    title: "GramNirnay AI",
+    title: "GramNirnay.ai",
     description: "Hyper-Local Business Intelligence for Rural Micro-Entrepreneurs",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "GramNirnay AI",
+    title: "GramNirnay.ai",
     description: "Hyper-Local Business Intelligence for Rural Micro-Entrepreneurs",
   },
 };

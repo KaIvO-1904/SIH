@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     llm_model: str = "gpt-4o-mini"
 
     # Backend Config
-    app_title: str = "GramNirnayAI Backend"
+    app_title: str = "GramNirnay.ai Backend"
     app_debug: bool = False
     app_port: int = 8000
     app_host: str = "0.0.0.0"

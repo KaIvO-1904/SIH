@@ -366,7 +366,7 @@ export default function ReportPage() {
         {/* DATA TRUST FOOTER */}
         <footer className="mt-16 pt-8 border-t border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-4 opacity-60">
           <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-            Analysis generated via GramNirnayAI Decision Support System
+            Analysis generated via GramNirnay.ai Decision Support System
           </div>
           <div className="flex gap-6 text-[10px] font-bold uppercase text-zinc-500">
             <span>Source: {data.marketAnalysis.source}</span>

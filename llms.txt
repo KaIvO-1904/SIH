@@ -1,6 +1,6 @@
-# GramNirnay AI
+# GramNirnay.ai
 
-GramNirnay AI is a hyper-local business decision intelligence system designed for rural micro-entrepreneurs in India.
+GramNirnay.ai is a hyper-local business decision intelligence system designed for rural micro-entrepreneurs in India.
 
 ## Purpose
 To empower rural entrepreneurs by transforming their business ideas, capital, and local context into actionable, deterministic financial plans and government scheme matches.

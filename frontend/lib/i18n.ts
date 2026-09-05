@@ -1,7 +1,7 @@
 export const translations = {
   en: {
     onboarding: {
-      title: "GramNirnay AI",
+      title: "GramNirnay.ai",
       subtitle: "Conversational Onboarding",
       send: "Send",
       analyzing: "Analyzing your profile...",
