@@ -1,17 +1,170 @@
 'use client';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { motion, useInView } from 'framer-motion';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { calculateEMI, calculateBreakEven, calculateROI } from '@/lib/financials';
 import { useLanguage } from '@/lib/LanguageContext';
 import { t } from '@/lib/i18n';
-import { AnalysisResult } from '@/types';
+import { AnalysisResult, Scheme } from '@/types';
+import { Reveal, Stagger, HoverLift, FadeIn } from '@/components/motion';
+import Card3DTilt from '@/components/3d/Card3DTilt';
+import ThreeDIcon from '@/components/3d/ThreeDIcons';
+import { ArrowLeft, ArrowRight, TrendingUp, AlertTriangle, ShieldCheck, CheckCircle, ExternalLink } from 'lucide-react';
 
+/* ─────────────────────────────────────────
+   Animated counter hook
+───────────────────────────────────────── */
+function useAnimatedNumber(target: number, duration = 900) {
+  const [value, setValue] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true });
+
+  useEffect(() => {
+    if (!isInView) return;
+    let start: number | null = null;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      setValue(Math.round(eased * target));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [target, duration, isInView]);
+
+  return { value, ref };
+}
+
+/* ─────────────────────────────────────────
+   Animated Viability Score Ring
+───────────────────────────────────────── */
+function ViabilityRing({ score, recommendation }: { score: number; recommendation: string }) {
+  const { value, ref } = useAnimatedNumber(score, 1200);
+  const radius = 54;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDash = (score / 100) * circumference;
+
+  const color =
+    recommendation === 'Proceed'
+      ? 'var(--success)'
+      : recommendation === 'Proceed with Modification'
+      ? 'var(--warning)'
+      : 'var(--danger)';
+
+  const badgeVariant =
+    recommendation === 'Proceed'
+      ? ('success' as const)
+      : recommendation === 'Proceed with Modification'
+      ? ('warning' as const)
+      : ('danger' as const);
+
+  return (
+    <div className="flex flex-col items-center gap-4 py-2" ref={ref}>
+      <div className="relative w-40 h-40 flex items-center justify-center">
+        {/* Track */}
+        <svg width="150" height="150" className="rotate-[-90deg]">
+          <circle
+            cx="75" cy="75" r={radius}
+            fill="none"
+            stroke="var(--surface-3)"
+            strokeWidth="10"
+          />
+          <motion.circle
+            cx="75" cy="75" r={radius}
+            fill="none"
+            stroke={color}
+            strokeWidth="10"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            initial={{ strokeDashoffset: circumference }}
+            animate={{ strokeDashoffset: circumference - strokeDash }}
+            transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          />
+        </svg>
+        {/* Score text */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-4xl font-black tracking-tighter font-mono" style={{ color: 'var(--text-primary)' }}>
+            {value}
+          </span>
+          <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>/100</span>
+        </div>
+      </div>
+      <Badge variant={badgeVariant} className="text-xs px-4 py-1 font-bold uppercase tracking-wider shadow-sm">
+        {recommendation}
+      </Badge>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────
+   Metric tile
+───────────────────────────────────────── */
+function MetricTile({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div
+      className="p-4 rounded-2xl border flex flex-col gap-1 shadow-xs transition-all hover:shadow-sm"
+      style={{
+        backgroundColor: accent ? 'var(--accent-subtle)' : 'var(--surface-1)',
+        borderColor: accent ? 'color-mix(in srgb, var(--accent) 25%, transparent)' : 'var(--border)',
+      }}
+    >
+      <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+        {label}
+      </div>
+      <div
+        className="text-xl font-black tracking-tight font-mono"
+        style={{ color: accent ? 'var(--accent-text)' : 'var(--text-primary)' }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────
+   Custom recharts tooltip
+───────────────────────────────────────── */
+interface TooltipPayloadEntry {
+  name: string;
+  value?: number;
+  color: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadEntry[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div
+      className="rounded-xl border p-3 text-xs shadow-xl backdrop-blur-md"
+      style={{ backgroundColor: 'var(--surface-0)', borderColor: 'var(--border-strong)', color: 'var(--text-primary)' }}
+    >
+      <p className="font-bold mb-1" style={{ color: 'var(--text-secondary)' }}>{label}</p>
+      {payload.map((p) => (
+        <div key={p.name} className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
+          <span style={{ color: 'var(--text-secondary)' }}>{p.name}:</span>
+          <span className="font-bold font-mono">₹{p.value?.toLocaleString()}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────
+   Main Report Page
+───────────────────────────────────────── */
 type ScenarioPreset = 'conservative' | 'base' | 'optimistic';
 
 export default function ReportPage() {
@@ -25,30 +178,29 @@ export default function ReportPage() {
     monthlyExpenses: 0,
     loanAmount: 0,
     interestRate: 9,
-    tenureYears: 5
+    tenureYears: 5,
   });
 
   useEffect(() => {
     const stored = localStorage.getItem('analysis_result');
     const demo = localStorage.getItem('demo_data');
     const source = stored || demo;
-
     if (source) {
       try {
         const parsed: AnalysisResult = JSON.parse(source);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setData(parsed);
-
         const fin = parsed.financials;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSandbox({
           setupCost: fin.total_project_cost || 0,
           monthlyRevenue: fin.monthly_revenue || 0,
           monthlyExpenses: fin.monthly_expenses || 0,
           loanAmount: fin.financing_required || 0,
           interestRate: 9,
-          tenureYears: 5
+          tenureYears: 5,
         });
-      } catch (e) {
-        console.error("Failed to parse analysis data", e);
+      } catch {
         router.push('/');
       }
     } else {
@@ -56,12 +208,10 @@ export default function ReportPage() {
     }
   }, [router]);
 
-  // Apply Scenario Multipliers
   const effectiveSandbox = useMemo(() => {
     let revMult = 1, expMult = 1;
     if (activePreset === 'conservative') { revMult = 0.85; expMult = 1.1; }
     if (activePreset === 'optimistic') { revMult = 1.15; expMult = 0.9; }
-
     return {
       ...sandbox,
       monthlyRevenue: sandbox.monthlyRevenue * revMult,
@@ -71,308 +221,519 @@ export default function ReportPage() {
 
   const emi = calculateEMI(effectiveSandbox.loanAmount, effectiveSandbox.interestRate, effectiveSandbox.tenureYears);
   const breakEven = calculateBreakEven(effectiveSandbox.setupCost, effectiveSandbox.monthlyRevenue, effectiveSandbox.monthlyExpenses + emi);
-  const annualProfit = (effectiveSandbox.monthlyRevenue - effectiveSandbox.monthlyExpenses - emi) * 12;
+  const monthlyNet = effectiveSandbox.monthlyRevenue - effectiveSandbox.monthlyExpenses - emi;
+  const annualProfit = monthlyNet * 12;
   const roi = calculateROI(annualProfit, effectiveSandbox.setupCost);
 
-  const chartData = Array.from({ length: 12 }, (_, i) => {
-    const month = i + 1;
-    const monthlyProfit = effectiveSandbox.monthlyRevenue - effectiveSandbox.monthlyExpenses - emi;
-    const cumulativeCash = monthlyProfit * month;
-    return {
-      month: `Mo ${month}`,
-      profit: Math.round(monthlyProfit),
-      cash: Math.round(cumulativeCash)
-    };
-  });
-
-  if (!data) return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center font-sans">Loading Analysis...</div>;
-
-  const getRecommendationColor = (rec: string) => {
-    if (rec === 'Proceed') return 'bg-green-900/30 text-green-400 border-green-800';
-    if (rec === 'Proceed with Modification') return 'bg-yellow-900/30 text-yellow-400 border-yellow-800';
-    return 'bg-red-900/30 text-red-400 border-red-800';
-  };
+  const chartData = Array.from({ length: 12 }, (_, i) => ({
+    month: `Mo ${i + 1}`,
+    profit: Math.round(monthlyNet),
+    cash: Math.round(monthlyNet * (i + 1)),
+  }));
 
   const deriveRisks = () => {
-    const risks = [];
-    if (breakEven > 36) risks.push({ label: "Long Payback Period", impact: "High", note: "Break-even exceeds 3 years, increasing capital risk." });
-    if (effectiveSandbox.monthlyRevenue > 0 && (effectiveSandbox.monthlyRevenue - effectiveSandbox.monthlyExpenses - emi) / effectiveSandbox.monthlyRevenue < 0.15) {
-        risks.push({ label: "Low Profit Margin", impact: "Medium", note: "Thin margins make the business sensitive to cost increases." });
-    }
-    if (effectiveSandbox.setupCost > 0 && effectiveSandbox.loanAmount / effectiveSandbox.setupCost > 0.7) {
-        risks.push({ label: "High Debt Reliance", impact: "Medium", note: "Heavy reliance on external funding increases monthly EMI pressure." });
-    }
-    if (data.marketAnalysis.competition > 70) {
-        risks.push({ label: "Market Saturation", impact: "High", note: "High local competition may compress pricing and revenue." });
-    }
+    const risks: { label: string; impact: 'High' | 'Medium'; note: string }[] = [];
+    if (breakEven > 36)
+      risks.push({ label: 'Long Payback Period', impact: 'High', note: 'Break-even exceeds 3 years, increasing capital risk.' });
+    if (effectiveSandbox.monthlyRevenue > 0 && monthlyNet / effectiveSandbox.monthlyRevenue < 0.15)
+      risks.push({ label: 'Low Profit Margin', impact: 'Medium', note: 'Thin margins make the business sensitive to cost increases.' });
+    if (effectiveSandbox.setupCost > 0 && effectiveSandbox.loanAmount / effectiveSandbox.setupCost > 0.7)
+      risks.push({ label: 'High Debt Reliance', impact: 'Medium', note: 'Heavy reliance on external funding increases monthly EMI pressure.' });
+    if (data?.marketAnalysis.competition !== undefined && data.marketAnalysis.competition > 70)
+      risks.push({ label: 'Market Saturation', impact: 'High', note: 'High local competition may compress pricing and revenue.' });
     return risks;
   };
 
-  return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6 md:p-12 font-sans selection:bg-zinc-100 selection:text-black">
-      <div className="max-w-6xl mx-auto">
+  if (!data) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: 'var(--surface-1)', color: 'var(--text-primary)' }}
+      >
+        <div className="flex flex-col items-center gap-4">
+          <div
+            className="w-12 h-12 rounded-full border-3 border-t-[var(--accent)] animate-spin"
+            style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
+          />
+          <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Loading analysis…</p>
+        </div>
+      </div>
+    );
+  }
 
-        {/* HEADER SECTION */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6 border-b border-zinc-800 pb-8">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
+  const sandboxSliders = [
+    { label: 'Total Project Cost', key: 'setupCost', min: 10000, max: 5000000, step: 10000 },
+    { label: 'Estimated Monthly Revenue', key: 'monthlyRevenue', min: 5000, max: 500000, step: 1000 },
+    { label: 'Fixed Monthly Expenses', key: 'monthlyExpenses', min: 1000, max: 200000, step: 1000 },
+    { label: 'Funding Required (Loan)', key: 'loanAmount', min: 0, max: 5000000, step: 10000 },
+  ] as const;
+
+  return (
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: 'var(--surface-1)', color: 'var(--text-primary)' }}
+    >
+      {/* Background */}
+      <div
+        className="pointer-events-none fixed inset-0 opacity-20"
+        aria-hidden="true"
+        style={{
+          backgroundImage: 'url(/media/grid-pattern.svg)',
+          backgroundSize: '280px 280px',
+          backgroundRepeat: 'repeat',
+          color: 'var(--border)',
+        }}
+      />
+
+      <div className="relative z-10 max-w-[1240px] mx-auto px-4 sm:px-6 md:px-10 pt-24 pb-20">
+
+        {/* ── HEADER ── */}
+        <FadeIn y={-16} duration={0.5} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+          <div>
+            <div
+              className="text-xs font-bold uppercase tracking-widest mb-1.5 flex items-center gap-2"
+              style={{ color: 'var(--accent-text)' }}
+            >
+              <ThreeDIcon name="chart" size="sm" variant="blue" />
+              <span>Business Intelligence Report</span>
+            </div>
+            <h1
+              className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight mb-1"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {t(lang, 'report.title')}
+            </h1>
+            <p className="text-base font-medium" style={{ color: 'var(--text-secondary)' }}>
+              {t(lang, 'report.subtitle')}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => router.push('/')}
+            className="gap-2 shrink-0 rounded-2xl"
           >
-            <div className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Business Intelligence Report</div>
-            <h1 className="text-5xl font-black uppercase tracking-tighter mb-2">{t(lang, 'report.title')}</h1>
-            <p className="text-zinc-500 font-medium text-lg">{t(lang, 'report.subtitle')}</p>
-          </motion.div>
-          <Button variant="outline" onClick={() => router.push('/')} className="font-bold uppercase tracking-tight border-zinc-800 hover:bg-zinc-100 hover:text-black transition-all">
+            <ArrowLeft size={16} />
             {t(lang, 'report.new_analysis')}
           </Button>
-        </div>
+        </FadeIn>
 
+        {/* Divider */}
+        <div className="mb-10 h-px" style={{ backgroundColor: 'var(--border)' }} />
+
+        {/* ── MAIN GRID ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-          {/* LEFT COLUMN: EXECUTIVE DECISION & METRICS */}
+          {/* ── LEFT COLUMN ── */}
           <div className="lg:col-span-4 space-y-6">
 
-            {/* VIABILITY SCORE CARD */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="p-8 border border-zinc-800 rounded-2xl text-center bg-zinc-900/40 backdrop-blur-sm shadow-sm"
-            >
-              <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4">
-                Overall Viability Score
-              </div>
-              <div className="text-7xl font-black mb-4 tracking-tighter">{data.viabilityScore}<span className="text-zinc-600 text-3xl ml-1">/100</span></div>
-              <Badge variant="outline" className={`text-sm px-4 py-1 rounded-full font-bold uppercase border ${getRecommendationColor(data.recommendation)}`}>
-                {data.recommendation}
-              </Badge>
-              <p className="mt-6 text-sm text-zinc-400 leading-relaxed italic">
-                {data.recommendation === 'Proceed' ? "Strong indicators suggest this venture is viable." :
-                 data.recommendation === 'Proceed with Modification' ? "Viable, provided certain strategic adjustments are made." :
-                 "Current analysis indicates high risk; reconsider business model."}
-              </p>
-            </motion.div>
-
-            {/* QUICK METRICS GRID */}
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: "Annual ROI", value: `${roi.toFixed(1)}%`, color: "text-zinc-100" },
-                { label: "Break-even", value: breakEven === 999 ? "Never" : `${Math.round(breakEven)} Mo`, color: "text-zinc-100" },
-                { label: "Monthly Net", value: `₹${Math.round(effectiveSandbox.monthlyRevenue - effectiveSandbox.monthlyExpenses - emi).toLocaleString()}`, color: "text-zinc-100" },
-                { label: "Debt Burden", value: `${Math.round((emi / effectiveSandbox.monthlyRevenue) * 100 || 0)}%`, color: "text-zinc-100" },
-              ].map((m, i) => (
-                <div key={i} className="p-4 border border-zinc-800 rounded-xl bg-zinc-900/20">
-                  <div className="text-[10px] font-bold uppercase text-zinc-500 mb-1">{m.label}</div>
-                  <div className={`text-xl font-black ${m.color}`}>{m.value}</div>
+            {/* Viability Score Card with Subtle Micro-Elevation */}
+            <Reveal>
+              <Card3DTilt intensity={1.5} glareOpacity={0.05}>
+                <div
+                  className="p-7 rounded-3xl border text-center shadow-sm backdrop-blur-xl"
+                  style={{
+                    backgroundColor: 'var(--surface-0)',
+                    borderColor: 'var(--border)',
+                  }}
+                >
+                  <div
+                    className="text-[11px] font-bold uppercase tracking-widest mb-3"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    Overall Viability Score
+                  </div>
+                  <ViabilityRing score={data.viabilityScore} recommendation={data.recommendation} />
+                  <p
+                    className="mt-4 text-xs sm:text-sm leading-relaxed"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    {data.recommendation === 'Proceed'
+                      ? 'Strong indicators suggest this venture is viable.'
+                      : data.recommendation === 'Proceed with Modification'
+                      ? 'Viable, provided certain strategic adjustments are made.'
+                      : 'Current analysis indicates high risk; reconsider business model.'}
+                  </p>
                 </div>
-              ))}
-            </div>
+              </Card3DTilt>
+            </Reveal>
 
-            {/* ANALYST NOTE */}
-            <Card className="border border-zinc-800 bg-zinc-900/40 backdrop-blur-sm shadow-sm overflow-hidden">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
-                  <div className="w-1 h-1 bg-zinc-400 rounded-full" />
-                  Analyst Note
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-zinc-300 leading-relaxed text-sm italic">
-                  {data.interpreter_reasoning || "Analysis based on regional benchmarks and projected market demand."}
+            {/* Quick Metrics */}
+            <Reveal delay={0.05}>
+              <Stagger stagger={0.07} className="grid grid-cols-2 gap-3">
+                <MetricTile label="Annual ROI" value={`${roi.toFixed(1)}%`} accent />
+                <MetricTile
+                  label="Break-even"
+                  value={breakEven === 999 ? 'Never' : `${Math.round(breakEven)} Mo`}
+                />
+                <MetricTile
+                  label="Monthly Net"
+                  value={`₹${Math.round(monthlyNet).toLocaleString()}`}
+                />
+                <MetricTile
+                  label="Debt Burden"
+                  value={`${Math.round((emi / effectiveSandbox.monthlyRevenue) * 100 || 0)}%`}
+                />
+              </Stagger>
+            </Reveal>
+
+            {/* Analyst Note */}
+            <Reveal delay={0.1}>
+              <div
+                className="p-6 rounded-3xl border bg-[var(--surface-0)] border-[var(--border)] shadow-xs space-y-3"
+              >
+                <div className="flex items-center gap-3">
+                  <ThreeDIcon name="sparkles" size="sm" variant="indigo" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                    Analyst Synthesis
+                  </span>
+                </div>
+                <p
+                  className="text-xs sm:text-sm leading-relaxed italic"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  {data.interpreter_reasoning || 'Analysis based on regional benchmarks and projected market demand.'}
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </Reveal>
           </div>
 
-          {/* RIGHT COLUMN: FINANCIALS & ROADMAP */}
+          {/* ── RIGHT COLUMN ── */}
           <div className="lg:col-span-8 space-y-8">
 
-            {/* FINANCIAL SANDBOX */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-8 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-sm"
-            >
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <div>
-                  <h2 className="text-xl font-black uppercase tracking-tight">{t(lang, 'report.sandbox_title')}</h2>
-                  <p className="text-zinc-500 text-xs font-medium">Adjust assumptions to simulate different business outcomes.</p>
-                </div>
-                <div className="flex bg-zinc-950 p-1 rounded-lg border border-zinc-800">
-                  {(['conservative', 'base', 'optimistic'] as ScenarioPreset[]).map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => setActivePreset(p)}
-                      className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md transition-all ${activePreset === p ? 'bg-zinc-100 text-black' : 'text-zinc-500 hover:text-zinc-300'}`}
+            {/* Financial Sandbox */}
+            <Reveal>
+              <Card3DTilt intensity={1.5} glareOpacity={0.05}>
+                <div
+                  className="p-6 sm:p-8 rounded-3xl border shadow-md backdrop-blur-xl"
+                  style={{
+                    backgroundColor: 'var(--surface-0)',
+                    borderColor: 'var(--border)',
+                  }}
+                >
+                  {/* Sandbox Header */}
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                    <div>
+                      <h2 className="text-xl font-black tracking-tight mb-0.5" style={{ color: 'var(--text-primary)' }}>
+                        {t(lang, 'report.sandbox_title')}
+                      </h2>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        Adjust assumptions to simulate real-time business outcomes.
+                      </p>
+                    </div>
+
+                    {/* Scenario selector */}
+                    <div
+                      className="flex p-1 rounded-2xl border gap-0.5"
+                      style={{ backgroundColor: 'var(--surface-1)', borderColor: 'var(--border)' }}
                     >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                      {(['conservative', 'base', 'optimistic'] as ScenarioPreset[]).map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => setActivePreset(p)}
+                          className="relative px-3.5 py-1.5 text-[11px] font-bold uppercase rounded-xl transition-colors duration-[var(--duration-base)] capitalize cursor-pointer"
+                          style={{
+                            color: activePreset === p ? 'var(--surface-0)' : 'var(--text-muted)',
+                          }}
+                        >
+                          {activePreset === p && (
+                            <motion.span
+                              layoutId="preset-pill"
+                              className="absolute inset-0 rounded-xl"
+                              style={{ backgroundColor: 'var(--text-primary)' }}
+                              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                            />
+                          )}
+                          <span className="relative z-10">{p}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                <div className="space-y-8">
-                  {[
-                    { label: "Total Project Cost", key: "setupCost", min: 10000, max: 5000000, step: 10000 },
-                    { label: "Estimated Monthly Revenue", key: "monthlyRevenue", min: 5000, max: 500000, step: 1000 },
-                    { label: "Fixed Monthly Expenses", key: "monthlyExpenses", min: 1000, max: 200000, step: 1000 },
-                    { label: "Funding Required (Loan)", key: "loanAmount", min: 0, max: 5000000, step: 10000 },
-                  ].map((ctrl) => (
-                    <div key={ctrl.key} className="space-y-4">
-                      <div className="flex justify-between text-[11px] font-bold uppercase text-zinc-400">
-                        <span>{ctrl.label}</span>
-                        <span className="text-zinc-100 font-mono">₹{Math.round((ctrl.key === 'monthlyRevenue' || ctrl.key === 'monthlyExpenses' ? effectiveSandbox[ctrl.key as keyof typeof effectiveSandbox] : sandbox[ctrl.key as keyof typeof sandbox])).toLocaleString()}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Sliders */}
+                    <div className="space-y-6">
+                      {sandboxSliders.map((ctrl) => {
+                        const displayVal =
+                          ctrl.key === 'monthlyRevenue' || ctrl.key === 'monthlyExpenses'
+                            ? effectiveSandbox[ctrl.key]
+                            : sandbox[ctrl.key];
+                        return (
+                          <div key={ctrl.key} className="space-y-2.5">
+                            <div className="flex justify-between text-[11px] font-semibold uppercase">
+                              <span style={{ color: 'var(--text-secondary)' }}>{ctrl.label}</span>
+                              <span className="font-black font-mono" style={{ color: 'var(--accent-text)' }}>
+                                ₹{Math.round(displayVal).toLocaleString()}
+                              </span>
+                            </div>
+                            <Slider
+                              value={[sandbox[ctrl.key] as number]}
+                              min={ctrl.min}
+                              max={ctrl.max}
+                              step={ctrl.step}
+                              onValueChange={(val) => setSandbox({ ...sandbox, [ctrl.key]: val[0] })}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Live Results + Chart */}
+                    <div
+                      className="rounded-2xl border p-5 space-y-5"
+                      style={{ backgroundColor: 'var(--surface-1)', borderColor: 'var(--border)' }}
+                    >
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
+                            Monthly EMI
+                          </div>
+                          <div className="text-2xl font-black font-mono" style={{ color: 'var(--text-primary)' }}>
+                            ₹{Math.round(emi).toLocaleString()}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
+                            Break-even
+                          </div>
+                          <div className="text-2xl font-black font-mono" style={{ color: 'var(--text-primary)' }}>
+                            {breakEven === 999 ? 'Never' : `${Math.round(breakEven)} Mo`}
+                          </div>
+                        </div>
                       </div>
-                      <Slider
-                        value={[sandbox[ctrl.key as keyof typeof sandbox] as number]}
-                        min={ctrl.min} max={ctrl.max} step={ctrl.step}
-                        onValueChange={(val) => setSandbox({...sandbox, [ctrl.key]: val[0]})}
-                        className="py-2"
-                      />
-                    </div>
-                  ))}
-                </div>
 
-                <div className="bg-zinc-950 p-6 rounded-xl border border-zinc-800 space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-1">
-                      <div className="text-[10px] font-bold uppercase text-zinc-500">Monthly EMI</div>
-                      <div className="text-2xl font-black">₹{Math.round(emi).toLocaleString()}</div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-[10px] font-bold uppercase text-zinc-500">Break-even</div>
-                      <div className="text-2xl font-black">{breakEven === 999 ? 'Never' : `${Math.round(breakEven)} Mo`}</div>
+                      {/* Chart */}
+                      <div className="h-44 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData}>
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              stroke="var(--border)"
+                              vertical={false}
+                            />
+                            <XAxis
+                              dataKey="month"
+                              stroke="var(--text-muted)"
+                              fontSize={10}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <YAxis
+                              stroke="var(--text-muted)"
+                              fontSize={10}
+                              tickLine={false}
+                              axisLine={false}
+                              tickFormatter={(v) => `₹${v / 1000}k`}
+                            />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Line
+                              type="monotone"
+                              dataKey="cash"
+                              name="Cumulative Cash"
+                              stroke="var(--accent)"
+                              strokeWidth={2}
+                              dot={false}
+                              activeDot={{ r: 4, fill: 'var(--accent)' }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="profit"
+                              name="Monthly Profit"
+                              stroke="var(--text-muted)"
+                              strokeWidth={1.5}
+                              strokeDasharray="5 4"
+                              dot={false}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="h-44 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
-                        <XAxis dataKey="month" stroke="#555" fontSize={10} tickLine={false} axisLine={false} />
-                        <YAxis stroke="#555" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `₹${v/1000}k`} />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '11px' }}
-                          itemStyle={{ color: '#fff' }}
-                        />
-                        <Line type="monotone" dataKey="cash" name="Cumulative Cash" stroke="#fff" strokeWidth={2} dot={false} />
-                        <Line type="monotone" dataKey="profit" name="Monthly Profit" stroke="#666" strokeWidth={1} strokeDasharray="4 4" dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </Card3DTilt>
+            </Reveal>
 
-            {/* RISK ASSESSMENT */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="border border-zinc-800 bg-zinc-900/40 shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="text-xs font-bold uppercase tracking-widest text-zinc-400">Risk Assessment</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {deriveRisks().length > 0 ? deriveRisks().map((risk, i) => (
-                            <div key={i} className="flex gap-4 p-3 rounded-lg bg-zinc-950 border border-zinc-800">
-                                <div className={`w-1 h-auto rounded-full ${risk.impact === 'High' ? 'bg-red-500' : 'bg-yellow-500'}`} />
-                                <div>
-                                    <div className="text-xs font-bold text-zinc-100">{risk.label}</div>
-                                    <div className="text-[11px] text-zinc-500">{risk.note}</div>
-                                </div>
-                            </div>
-                        )) : (
-                            <div className="text-sm text-zinc-500 italic">No significant financial risks detected under current assumptions.</div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card className="border border-zinc-800 bg-zinc-900/40 shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="text-xs font-bold uppercase tracking-widest text-zinc-400">Recommended Actions</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        {data.modifications.length > 0 ? data.modifications.map((mod, i) => (
-                            <div key={i} className="flex items-start gap-3 text-xs text-zinc-300">
-                                <span className="font-mono text-zinc-600 mt-0.5">0{i+1}</span>
-                                <span>{mod}</span>
-                            </div>
-                        )) : (
-                            <div className="text-sm text-zinc-500 italic">No specific modifications suggested.</div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* FINANCING ROADMAP */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-zinc-100 rounded-lg">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                  </svg>
-                </div>
-                <h3 className="text-lg font-black uppercase tracking-tight">{t(lang, 'report.roadmap_title')}</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="p-4 border border-zinc-800 rounded-xl bg-zinc-900/40">
-                    <div className="text-[10px] font-bold uppercase text-zinc-500 mb-1">Total Capital Required</div>
-                    <div className="text-xl font-black">₹{data.financials.total_project_cost.toLocaleString()}</div>
-                </div>
-                <div className="p-4 border border-zinc-800 rounded-xl bg-zinc-900/40">
-                    <div className="text-[10px] font-bold uppercase text-zinc-500 mb-1">Self-Funding</div>
-                    <div className="text-xl font-black text-zinc-300">₹{(data.financials.total_project_cost - data.financials.financing_required).toLocaleString()}</div>
-                </div>
-                <div className="p-4 border border-zinc-800 rounded-xl bg-zinc-900/40">
-                    <div className="text-[10px] font-bold uppercase text-zinc-500 mb-1">External Funding Gap</div>
-                    <div className="text-xl font-black text-zinc-100">₹{data.financials.financing_required.toLocaleString()}</div>
-                </div>
-              </div>
-
+            {/* Risk Assessment + Recommendations */}
+            <Reveal delay={0.05}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {data.matchedSchemes?.map((scheme: any, i: number) => (
-                  <Card key={i} className="group hover:border-zinc-600 transition-all border border-zinc-800 bg-zinc-900/40 backdrop-blur-sm overflow-hidden">
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start gap-2">
-                        <CardTitle className="font-bold text-sm leading-tight">{scheme.name}</CardTitle>
-                        <Badge variant="secondary" className="text-[9px] font-bold uppercase bg-zinc-800 text-zinc-400 border-zinc-700">
-                          {scheme.ministry}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4 p-3 bg-zinc-950 rounded-lg border border-zinc-800">
-                        <div className="space-y-1">
-                          <div className="text-[10px] font-bold uppercase text-zinc-500">Subsidy</div>
-                          <div className="text-zinc-100 font-black text-sm">{scheme.benefit.subsidyPercent}%</div>
+
+                {/* Risk Assessment */}
+                <div className="p-6 rounded-3xl border bg-[var(--surface-0)] border-[var(--border)] shadow-xs space-y-4">
+                  <div className="flex items-center gap-3">
+                    <ThreeDIcon name="shield" size="sm" variant="amber" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                      Risk Evaluation
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {deriveRisks().length > 0 ? (
+                      deriveRisks().map((risk, i) => (
+                        <div
+                          key={i}
+                          className="flex gap-3 p-3 rounded-2xl border"
+                          style={{
+                            backgroundColor: risk.impact === 'High' ? 'var(--danger-bg)' : 'var(--warning-bg)',
+                            borderColor: risk.impact === 'High' ? 'var(--danger-border)' : 'var(--warning-border)',
+                          }}
+                        >
+                          <div
+                            className="w-1 rounded-full shrink-0 mt-0.5"
+                            style={{ backgroundColor: risk.impact === 'High' ? 'var(--danger)' : 'var(--warning)' }}
+                          />
+                          <div>
+                            <div
+                              className="text-xs font-bold mb-0.5"
+                              style={{ color: risk.impact === 'High' ? 'var(--danger)' : 'var(--warning)' }}
+                            >
+                              {risk.label}
+                            </div>
+                            <div className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                              {risk.note}
+                            </div>
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <div className="text-[10px] font-bold uppercase text-zinc-500">Max Loan</div>
-                          <div className="text-zinc-100 font-black text-sm">₹{scheme.benefit.loanAmount.toLocaleString()}</div>
+                      ))
+                    ) : (
+                      <p className="text-xs sm:text-sm italic" style={{ color: 'var(--text-muted)' }}>
+                        No significant financial risks detected under current assumptions.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Recommended Actions */}
+                <div className="p-6 rounded-3xl border bg-[var(--surface-0)] border-[var(--border)] shadow-xs space-y-4">
+                  <div className="flex items-center gap-3">
+                    <ThreeDIcon name="zap" size="sm" variant="emerald" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                      Recommended Strategic Actions
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {data.modifications.length > 0 ? (
+                      data.modifications.map((mod, i) => (
+                        <div key={i} className="flex items-start gap-3 text-xs sm:text-sm">
+                          <span
+                            className="font-black font-mono text-xs mt-0.5 shrink-0 w-6 h-6 rounded-xl flex items-center justify-center bg-[var(--accent-subtle)] text-[var(--accent-text)] border border-[var(--accent)]/20"
+                          >
+                            {i + 1}
+                          </span>
+                          <span style={{ color: 'var(--text-secondary)' }}>{mod}</span>
                         </div>
-                      </div>
-                      <Button variant="ghost" asChild className="w-full justify-center p-0 h-auto text-[10px] font-bold uppercase tracking-widest border-b border-zinc-800 pb-2 inline-block group-hover:text-zinc-100 group-hover:border-zinc-100 transition-colors">
-                        <a href={scheme.sourceUrl} target="_blank" rel="noopener noreferrer">
-                          View Guidelines →
-                        </a>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+                      ))
+                    ) : (
+                      <p className="text-xs sm:text-sm italic" style={{ color: 'var(--text-muted)' }}>
+                        No specific modifications suggested.
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+            </Reveal>
+
+            {/* Financing Roadmap */}
+            <Reveal delay={0.1}>
+              <div className="space-y-6">
+                {/* Section header */}
+                <div className="flex items-center gap-3 mb-2">
+                  <ThreeDIcon name="scheme" size="md" variant="purple" />
+                  <div>
+                    <h3 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                      {t(lang, 'report.roadmap_title')}
+                    </h3>
+                    <p className="text-xs text-[var(--text-muted)]">
+                      Eligible credit-linked subsidies and financial structure
+                    </p>
+                  </div>
+                </div>
+
+                {/* Capital breakdown */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {[
+                    { label: 'Total Capital Required', value: `₹${data.financials.total_project_cost.toLocaleString()}`, accent: false },
+                    { label: 'Self-Funding', value: `₹${(data.financials.total_project_cost - data.financials.financing_required).toLocaleString()}`, accent: false },
+                    { label: 'External Funding Gap', value: `₹${data.financials.financing_required.toLocaleString()}`, accent: true },
+                  ].map((item) => (
+                    <MetricTile key={item.label} label={item.label} value={item.value} accent={item.accent} />
+                  ))}
+                </div>
+
+                {/* Scheme Cards */}
+                <Stagger stagger={0.1} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {data.matchedSchemes?.map((scheme: Scheme, i: number) => (
+                    <Card3DTilt key={i} intensity={1.5} glareOpacity={0.05}>
+                      <div
+                        className="h-full p-6 rounded-3xl border backdrop-blur-md relative overflow-hidden flex flex-col justify-between"
+                        style={{
+                          backgroundColor: 'var(--surface-0)',
+                          borderColor: 'var(--border)',
+                          boxShadow: 'var(--shadow-sm)',
+                        }}
+                      >
+                        <div>
+                          <div className="flex justify-between items-start gap-2 mb-4">
+                            <h4 className="text-base font-bold leading-snug">
+                              {scheme.name}
+                            </h4>
+                            <Badge variant="secondary" className="text-[10px] shrink-0 font-bold uppercase">
+                              {scheme.ministry}
+                            </Badge>
+                          </div>
+
+                          <div
+                            className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl border mb-4"
+                            style={{ backgroundColor: 'var(--surface-1)', borderColor: 'var(--border)' }}
+                          >
+                            <div>
+                              <div className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-muted)' }}>
+                                Subsidy
+                              </div>
+                              <div className="font-black text-lg font-mono" style={{ color: 'var(--success)' }}>
+                                {scheme.benefit.subsidyPercent}%
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-muted)' }}>
+                                Max Loan
+                              </div>
+                              <div className="font-black text-lg font-mono" style={{ color: 'var(--text-primary)' }}>
+                                ₹{scheme.benefit.loanAmount.toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <a
+                          href={scheme.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider transition-all duration-[var(--duration-base)] hover:gap-2 text-[var(--accent-text)] pt-2"
+                        >
+                          <span>Official Guidelines</span>
+                          <ExternalLink size={14} />
+                        </a>
+                      </div>
+                    </Card3DTilt>
+                  ))}
+                </Stagger>
+              </div>
+            </Reveal>
           </div>
         </div>
 
-        {/* DATA TRUST FOOTER */}
-        <footer className="mt-16 pt-8 border-t border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-4 opacity-60">
-          <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-            Analysis generated via GramNirnay.ai Decision Support System
-          </div>
-          <div className="flex gap-6 text-[10px] font-bold uppercase text-zinc-500">
-            <span>Source: {data.marketAnalysis.source}</span>
-            <span>Confidence: {data.marketAnalysis.confidence}</span>
-          </div>
-        </footer>
+        {/* ── FOOTER ── */}
+        <Reveal className="mt-16 pt-8 border-t" style={{ borderColor: 'var(--border)' }}>
+          <footer className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-mono text-[var(--text-muted)]">
+            <div className="uppercase tracking-widest">
+              Generated via GramNirnay.ai Decision Support System
+            </div>
+            <div className="flex gap-6 font-bold uppercase">
+              <span>Source: {data.marketAnalysis.source}</span>
+              <span>Confidence: {data.marketAnalysis.confidence}</span>
+            </div>
+          </footer>
+        </Reveal>
       </div>
     </div>
   );

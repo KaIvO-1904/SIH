@@ -67,12 +67,12 @@ export const translations = {
 
 export type Language = 'en' | 'hi';
 
-export function t(lang: Language, path: string) {
+export function t(lang: Language, path: string): string {
   const keys = path.split('.');
-  let result: any = translations[lang];
+  let result: Record<string, unknown> = translations[lang] as Record<string, unknown>;
   for (const key of keys) {
     if (result[key] === undefined) return path;
-    result = result[key];
+    result = result[key] as Record<string, unknown>;
   }
-  return result;
+  return result as unknown as string;
 }

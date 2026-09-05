@@ -16,9 +16,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as Theme | null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (savedTheme) {
       setTheme(savedTheme);
     } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTheme('dark');
     }
   }, []);

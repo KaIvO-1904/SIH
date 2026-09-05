@@ -8,19 +8,38 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
 const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
   ({ className, variant = 'default', ...props }, ref) => {
     const variants = {
-      default: "bg-black text-white hover:bg-zinc-800",
-      secondary: "bg-zinc-100 text-black hover:bg-zinc-200",
-      outline: "border border-zinc-200 text-zinc-900",
-      success: "bg-green-100 text-green-700 border border-green-200",
-      warning: "bg-yellow-100 text-yellow-700 border border-yellow-200",
-      danger: "bg-red-100 text-red-700 border border-red-200",
+      default: [
+        "bg-[var(--text-primary)] text-[var(--surface-0)]",
+        "border border-[var(--text-primary)]",
+      ].join(' '),
+      secondary: [
+        "bg-[var(--surface-2)] text-[var(--text-secondary)]",
+        "border border-[var(--border)]",
+      ].join(' '),
+      outline: [
+        "bg-transparent text-[var(--text-primary)]",
+        "border border-[var(--border-strong)]",
+      ].join(' '),
+      success: [
+        "bg-[var(--success-bg)] text-[var(--success)]",
+        "border border-[var(--success-border)]",
+      ].join(' '),
+      warning: [
+        "bg-[var(--warning-bg)] text-[var(--warning)]",
+        "border border-[var(--warning-border)]",
+      ].join(' '),
+      danger: [
+        "bg-[var(--danger-bg)] text-[var(--danger)]",
+        "border border-[var(--danger-border)]",
+      ].join(' '),
     }
 
     return (
       <div
         ref={ref}
         className={cn(
-          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors",
+          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
+          "transition-colors duration-[var(--duration-fast)]",
           variants[variant],
           className
         )}
