@@ -632,7 +632,7 @@ export default function ReportPage() {
               </div>
             </Reveal>
 
-            {/* Financing Roadmap */}
+            {/* Financing Roadmap & Recommended Capital Advisory */}
             <Reveal delay={0.1}>
               <div className="space-y-6">
                 {/* Section header */}
@@ -640,24 +640,76 @@ export default function ReportPage() {
                   <ThreeDIcon name="scheme" size="md" variant="purple" />
                   <div>
                     <h3 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                      {t(lang, 'report.roadmap_title')}
+                      Recommended Capital & Financing Roadmap
                     </h3>
                     <p className="text-xs text-[var(--text-muted)]">
-                      Eligible credit-linked subsidies and financial structure
+                      AI-benchmarked capital requirement, asset allocation, and eligible credit subsidies
                     </p>
                   </div>
                 </div>
 
-                {/* Capital breakdown */}
+                {/* Capital Advisory Overview Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {[
-                    { label: 'Total Capital Required', value: `₹${data.financials.total_project_cost.toLocaleString()}`, accent: false },
-                    { label: 'Self-Funding', value: `₹${(data.financials.total_project_cost - data.financials.financing_required).toLocaleString()}`, accent: false },
-                    { label: 'External Funding Gap', value: `₹${data.financials.financing_required.toLocaleString()}`, accent: true },
-                  ].map((item) => (
-                    <MetricTile key={item.label} label={item.label} value={item.value} accent={item.accent} />
-                  ))}
+                  <MetricTile
+                    label="Recommended Setup Capital"
+                    value={`₹${data.financials.total_project_cost.toLocaleString()}`}
+                    accent
+                  />
+                  <MetricTile
+                    label="Min. Viable Launch Capital"
+                    value={`₹${(data.financials.min_viable_capital || Math.round(data.financials.total_project_cost * 0.6)).toLocaleString()}`}
+                    accent={false}
+                  />
+                  <MetricTile
+                    label="Projected Monthly Revenue"
+                    value={`₹${data.financials.monthly_revenue.toLocaleString()}`}
+                    accent={false}
+                  />
                 </div>
+
+                {/* Detailed Asset Allocation Breakdown Card */}
+                {data.financials.capital_breakdown && Object.keys(data.financials.capital_breakdown).length > 0 && (
+                  <Card3DTilt intensity={1.5} glareOpacity={0.05}>
+                    <div
+                      className="p-6 rounded-3xl border shadow-xs backdrop-blur-md"
+                      style={{
+                        backgroundColor: 'var(--surface-0)',
+                        borderColor: 'var(--border)',
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
+                          Estimated Asset Allocation & Infrastructure Costs
+                        </div>
+                        <span className="text-[11px] font-mono text-[var(--text-muted)]">
+                          {Object.keys(data.financials.capital_breakdown).length} Components
+                        </span>
+                      </div>
+
+                      <div className="space-y-3.5">
+                        {Object.entries(data.financials.capital_breakdown).map(([item, cost]) => {
+                          const pct = Math.min(100, Math.round((cost / data.financials.total_project_cost) * 100)) || 0;
+                          return (
+                            <div key={item} className="space-y-1.5">
+                              <div className="flex justify-between text-xs font-semibold">
+                                <span style={{ color: 'var(--text-primary)' }}>{item}</span>
+                                <span className="font-mono font-bold" style={{ color: 'var(--accent-text)' }}>
+                                  ₹{cost.toLocaleString()} <span className="text-[10px] text-[var(--text-muted)]">({pct}%)</span>
+                                </span>
+                              </div>
+                              <div className="w-full h-2 rounded-full bg-[var(--surface-2)] overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </Card3DTilt>
+                )}
 
                 {/* Scheme Cards */}
                 <Stagger stagger={0.1} className="grid grid-cols-1 md:grid-cols-2 gap-5">

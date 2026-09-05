@@ -1,5 +1,18 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-import { UserProfile, AnalysisResult } from '@/types';
+import { UserProfile, AnalysisResult, QuestionnaireResponse } from '@/types';
+
+export async function generateQuestions(businessIdea: string, location: { district: string; state: string }): Promise<QuestionnaireResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/generate-questions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ businessIdea, location }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || `Server error: ${response.status} ${response.statusText}`);
+  }
+  return response.json();
+}
 
 export async function analyzeViability(profile: UserProfile): Promise<AnalysisResult> {
   const response = await fetch(`${API_BASE_URL}/api/analyze-viability`, {

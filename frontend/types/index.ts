@@ -5,17 +5,45 @@ export interface Location {
   lng?: number;
 }
 
+export interface QuestionOption {
+  label: string;
+  value: string;
+  desc?: string;
+}
+
+export interface DynamicQuestion {
+  id: string;
+  question: string;
+  type: 'select' | 'text' | 'number';
+  allow_custom?: boolean;
+  options?: QuestionOption[];
+  placeholder?: string;
+  iconName?: 'idea' | 'capital' | 'target' | 'experience' | 'district' | 'state' | 'chart' | 'shield' | 'sparkles' | 'zap' | 'scheme' | 'trending' | 'cart';
+  variant?: 'blue' | 'emerald' | 'amber' | 'indigo' | 'cyan' | 'purple' | 'rose';
+}
+
+export interface QuestionnaireResponse {
+  category: string;
+  title: string;
+  description: string;
+  iconName?: 'idea' | 'capital' | 'target' | 'experience' | 'district' | 'state' | 'chart' | 'shield' | 'sparkles' | 'zap' | 'scheme' | 'trending' | 'cart';
+  variant?: 'blue' | 'emerald' | 'amber' | 'indigo' | 'cyan' | 'purple' | 'rose';
+  questions: DynamicQuestion[];
+}
+
 export interface UserProfile {
   location: Location;
   businessIdea: string;
-  availableCapital: number;
+  availableCapital?: number;
   experience: number;
-  targetInvestment: number;
+  targetInvestment?: number;
+  answers?: Record<string, any>;
 }
 
 export interface Financials {
   total_project_cost: number;
   financing_required: number;
+  min_viable_capital?: number;
   monthly_revenue: number;
   monthly_expenses: number;
   monthly_emi: number;
@@ -25,6 +53,7 @@ export interface Financials {
   break_even_months: number;
   is_viable: boolean;
   user_capital?: number;
+  capital_breakdown?: Record<string, number>;
 }
 
 export interface MarketAnalysis {
@@ -56,9 +85,11 @@ export interface Scheme {
 export interface AnalysisResult {
   viabilityScore: number;
   recommendation: string;
+  category?: string;
   marketAnalysis: MarketAnalysis;
   financials: Financials;
   interpreter_reasoning?: string;
   modifications: string[];
   matchedSchemes: Scheme[];
 }
+

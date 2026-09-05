@@ -87,8 +87,43 @@ def test_all():
     assert r6.status_code == 200, f"Expected 200, got {r6.status_code}"
     records = r6.json()
     print(f"Fetched {len(records)} record(s) for user {user_id}")
-    for rec in records:
-        print(f" - [{rec['date']}] {rec['businessIdea']} ({rec['district']}) -> Score: {rec['score']}/100")
+    print("\n--- 7. Testing Question Generation Endpoint /api/generate-questions ---")
+    cloth_q = client.post("/api/generate-questions", json={
+        "businessIdea": "Apparel and saree cloth shop",
+        "location": {"district": "Surat", "state": "Gujarat"}
+    })
+    print(f"Status: {cloth_q.status_code}")
+    assert cloth_q.status_code == 200, f"Expected 200, got {cloth_q.status_code}"
+    q_data = cloth_q.json()
+    print(f"Generated {len(q_data.get('questions', []))} questions for {q_data.get('title')}")
+    for q in q_data.get('questions', []):
+        print(f" - {q['question']} ({len(q.get('options', []))} options)")
+
+    print("\n--- 8. Testing Viability Analysis from Questionnaire (No Capital Asked) ---")
+    poultry_answers = {
+        "location": {"district": "Coimbatore", "state": "Tamil Nadu"},
+        "businessIdea": "Broiler Poultry Farm",
+        "experience": 2,
+        "answers": {
+            "poultry_type": "broiler",
+            "flock_size": "2500",
+            "shed_status": "need_shed",
+            "contract_farming": "contract"
+        }
+    }
+    r8 = client.post("/api/analyze-viability", json=poultry_answers)
+    print(f"Status: {r8.status_code}")
+    assert r8.status_code == 200, f"Expected 200, got {r8.status_code}"
+    res8 = r8.json()
+    fin8 = res8.get("financials", {})
+    print(f"Category: {res8.get('category')}")
+    print(f"Viability Score: {res8.get('viabilityScore')}/100")
+    print(f"Recommended Setup Cost: Rs. {fin8.get('total_project_cost'):,}")
+    print(f"Min Viable Capital: Rs. {fin8.get('min_viable_capital'):,}")
+    print(f"Projected Monthly Revenue: Rs. {fin8.get('monthly_revenue'):,}")
+    print(f"Projected Monthly Expenses: Rs. {fin8.get('monthly_expenses'):,}")
+    print(f"Projected Monthly Net Profit: Rs. {fin8.get('monthly_net_profit'):,}")
+    print(f"Capital Breakdown: {fin8.get('capital_breakdown')}")
 
     print("\n==========================================")
     print(" [SUCCESS] ALL BACKEND SERVICES VERIFIED 100% OK")
@@ -96,3 +131,4 @@ def test_all():
 
 if __name__ == "__main__":
     test_all()
+
