@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 import logging
+import json
 from .config import settings
 from .logger import setup_logging, logger
 from .financial_engine import FinancialEngine
@@ -77,7 +78,7 @@ async def analyze_viability(profile: UserProfile) -> Dict[str, Any]:
     """
     try:
         # Normalize location data
-        if "location" in profile.dict():
+        if "location" in profile.model_dump():
             loc = profile.location
             if loc and "state" in loc:
                 loc["state"] = normalize_state(loc["state"])
@@ -93,10 +94,10 @@ async def analyze_viability(profile: UserProfile) -> Dict[str, Any]:
         financials = fin_engine.compute_full_model(params)
 
         # 3. Local Context: Get market proxies for the location and business idea
-        market_analysis = ctx_engine.get_market_proxies(profile.dict(), profile.businessIdea)
+        market_analysis = ctx_engine.get_market_proxies(profile.model_dump(), profile.businessIdea)
 
         # 4. RAG Matching: Find the right schemes for the funding gap
-        schemes = rag_engine.get_best_schemes(profile.dict(), params)
+        schemes = rag_engine.get_best_schemes(profile.model_dump(), params)
 
         # Calculate a realistic viability score
         # Base score on viability, ROI, and break-even
