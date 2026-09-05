@@ -1,4 +1,4 @@
-# Roadmap - Gram-AI MVP (48-60 Hour Sprint)
+# Roadmap - GramNirnayAI MVP (48-60 Hour Sprint)
 
 ## Goal: High-Probability-to-Win Prototype
 The priority is a **convincing vertical slice**: One phenomenal demo scenario (e.g., Rural Dairy Business) that proves the end-to-end flow.

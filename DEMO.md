@@ -1,4 +1,4 @@
-# Demo Guide - Gram-AI MVP
+# Demo Guide - GramNirnayAI MVP
 
 ## 1. Setup Instructions
 

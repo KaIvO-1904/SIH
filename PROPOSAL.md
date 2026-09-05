@@ -1,4 +1,4 @@
-# MVP Detailed Proposal - Gram-AI
+# MVP Detailed Proposal - GramNirnayAI
 
 ## 1. Minimum Viable Data Model
 

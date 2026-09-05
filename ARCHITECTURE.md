@@ -1,7 +1,7 @@
-# Architecture Document - Gram-AI
+# Architecture Document - GramNirnayAI
 
 ## 1. High-Level System Design
-Gram-AI is designed as a decoupled system where deterministic logic is strictly separated from probabilistic AI reasoning.
+GramNirnayAI is designed as a decoupled system where deterministic logic is strictly separated from probabilistic AI reasoning.
 
 ### Core Flow:
 `User Input` $\rightarrow$ `Input Validation` $\rightarrow$ `(Data Engine + AI Engine)` $\rightarrow$ `Decision Engine` $\rightarrow$ `Explainability Engine` $\rightarrow$ `User Advisory`

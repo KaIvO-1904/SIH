@@ -46,7 +46,7 @@ export default function LandingPage() {
             animate={{ scale: 1 }}
             transition={{ duration: 1, ease: "easeOut" }}
           >
-            Gram-AI
+            GramNirnayAI
           </motion.h1>
           <motion.p
             className="text-lg md:text-2xl font-medium text-zinc-500 max-w-2xl mx-auto leading-relaxed"
@@ -115,7 +115,7 @@ export default function LandingPage() {
 
         {/* Subtle Footer */}
         <footer className="absolute bottom-8 text-xs font-mono text-zinc-400 uppercase tracking-widest">
-          Gram-AI © 2026 — Rural Intelligence System
+          GramNirnayAI © 2026 — Rural Intelligence System
         </footer>
       </main>
     </div>
